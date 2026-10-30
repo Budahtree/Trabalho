@@ -15,43 +15,66 @@ from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.formatting.rule import CellIsRule, FormulaRule
 from openpyxl.comments import Comment
-from openpyxl.chart import LineChart, BarChart, Reference
+from openpyxl.chart import LineChart, BarChart, PieChart, Reference
+from openpyxl.chart.series import SeriesLabel
+from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.drawing.line import LineProperties
+from openpyxl.chart.label import DataLabelList
+from openpyxl.worksheet.hyperlink import Hyperlink
+from openpyxl.formatting.rule import DataBarRule
 from openpyxl.workbook.properties import CalcProperties
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "Modelo_Avaliacao_Investimentos.xlsx"
 
 # ---------------------------------------------------------------- estilos
 FONT = "Arial"
-NAVY = "1F3864"
+NAVY = "1B2A41"          # cor principal
+NAVY2 = "2E4A72"         # banner secundário
+BLUE = "2E75B6"          # acento
+LIGHT = "EAF1FB"         # fundo de secção
+GOLD = "C8A951"
+GREEN = "2E7D32"
+RED = "C62828"
+GREY = "7F7F7F"
 F_BASE = Font(name=FONT, size=10)
 F_BOLD = Font(name=FONT, size=10, bold=True)
 F_INPUT = Font(name=FONT, size=10, color="0000FF")
 F_LINK = Font(name=FONT, size=10, color="008000")
-F_TITLE = Font(name=FONT, size=16, bold=True, color=NAVY)
-F_SUB = Font(name=FONT, size=10, italic=True, color="595959")
-F_HDR = Font(name=FONT, size=10, bold=True, color="FFFFFF")
-F_SEC = Font(name=FONT, size=11, bold=True, color=NAVY)
+F_TITLE = Font(name=FONT, size=16, bold=True, color="FFFFFF")
+F_SUB = Font(name=FONT, size=9, italic=True, color=GREY)
+F_HDR = Font(name=FONT, size=9, bold=True, color="FFFFFF")
+F_SEC = Font(name=FONT, size=10, bold=True, color=NAVY)
+F_NAV = Font(name=FONT, size=8, color=BLUE, underline="single")
 FILL_HDR = PatternFill("solid", fgColor=NAVY)
-FILL_SEC = PatternFill("solid", fgColor="D9E1F2")
-FILL_IN = PatternFill("solid", fgColor="FFF2CC")
-FILL_KEY = PatternFill("solid", fgColor="FFFF00")
-FILL_TOT = PatternFill("solid", fgColor="F2F2F2")
-FILL_OK = PatternFill("solid", fgColor="C6EFCE")
-FILL_BAD = PatternFill("solid", fgColor="FFC7CE")
-FILL_WARN = PatternFill("solid", fgColor="FFEB9C")
-THIN = Side(style="thin", color="BFBFBF")
-B_TOP = Border(top=Side(style="thin", color="000000"))
+FILL_SEC = PatternFill("solid", fgColor=LIGHT)
+FILL_IN = PatternFill("solid", fgColor="FFF8E1")
+FILL_KEY = PatternFill("solid", fgColor="FFE699")
+FILL_TOT = PatternFill("solid", fgColor="F3F6FA")
+FILL_OK = PatternFill("solid", fgColor="D8F0DA")
+FILL_BAD = PatternFill("solid", fgColor="F9D6D5")
+FILL_WARN = PatternFill("solid", fgColor="FFF0C2")
+FILL_CARD = PatternFill("solid", fgColor="F3F6FA")
+FILL_NAV = PatternFill("solid", fgColor="F2F2F2")
+THIN = Side(style="thin", color="D0D7E1")
+DOT = Side(style="hair", color="A6A6A6")
+B_TOP = Border(top=Side(style="thin", color=NAVY))
+B_TOT = Border(top=Side(style="thin", color=NAVY), bottom=Side(style="double", color=NAVY))
 B_BOX = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
+B_IN = Border(left=DOT, right=DOT, top=DOT, bottom=DOT)
+B_ROW = Border(bottom=Side(style="hair", color="D0D7E1"))
 
-EUR = '#,##0;(#,##0);"-"'
-EUR2 = '#,##0.00;(#,##0.00);"-"'
-PCT = '0.0%;(0.0%);"-"'
-MULT = '0.00"x";(0.00"x");"-"'
-INT = '0;(0);"-"'
+EUR = '#,##0;[Red](#,##0);"–"'
+EUR2 = '#,##0.00;[Red](#,##0.00);"–"'
+MEUR = '#,##0.00,," M€";[Red](#,##0.00,," M€");"–"'
+PCT = '0.0%;[Red](0.0%);"–"'
+MULT = '0.00"x";[Red](0.00"x");"–"'
+INT = '0;[Red](0);"–"'
+ANOS = '[=1]0" ano";0" anos"'
 YEAR = '0'
 
 wb = Workbook()
 names = {}
+NAV = ["Início", "Dashboard", "Estrutura", "Pressupostos", "Capex", "Pessoal", "FSE", "Relatório", "Checks"]
 
 
 def name(nm, ws, ref):
@@ -76,19 +99,23 @@ def header_row(ws, row, values, start_col=1):
         c.font = F_HDR
         c.fill = FILL_HDR
         c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws.row_dimensions[row].height = 26
 
 
-def section(ws, row, text, ncols):
-    for col in range(1, ncols + 1):
-        ws.cell(row=row, column=col).fill = FILL_SEC
-    c = ws.cell(row=row, column=1, value=text)
+def section(ws, row, text, ncols, start_col=1):
+    for col in range(start_col, start_col + ncols):
+        c = ws.cell(row=row, column=col)
+        c.fill = FILL_SEC
+        c.border = Border(bottom=Side(style="medium", color=BLUE))
+    c = ws.cell(row=row, column=start_col, value=text)
     c.font = F_SEC
+    ws.row_dimensions[row].height = 20
 
 
 def set_input(c, key=False):
     c.font = F_INPUT
     c.fill = FILL_KEY if key else FILL_IN
-    c.border = B_BOX
+    c.border = B_IN
 
 
 def widths(ws, d):
@@ -96,20 +123,86 @@ def widths(ws, d):
         ws.column_dimensions[k].width = v
 
 
-def default_font(ws):
-    for row in ws.iter_rows():
-        for c in row:
-            if c.font is None or c.font.name != FONT:
-                c.font = Font(name=FONT, size=c.font.size if c.font else 10,
-                              bold=c.font.bold if c.font else False,
-                              italic=c.font.italic if c.font else False,
-                              color=c.font.color if c.font else None)
+def merge(ws, r1, c1, r2, c2, value=None, font=None, fill=None, fmt=None, align=None, border=None):
+    """Junta células e aplica estilo a todo o intervalo (bordas incluídas)."""
+    if (r1, c1) != (r2, c2):
+        ws.merge_cells(start_row=r1, start_column=c1, end_row=r2, end_column=c2)
+    for r_ in range(r1, r2 + 1):
+        for c_ in range(c1, c2 + 1):
+            cell = ws.cell(row=r_, column=c_)
+            if fill: cell.fill = fill
+            if border: cell.border = border
+    c = ws.cell(row=r1, column=c1)
+    if value is not None: c.value = value
+    if font: c.font = font
+    if fmt: c.number_format = fmt
+    if align: c.alignment = align
+    return c
+
+
+def outline_box(ws, r1, c1, r2, c2, color, style="medium"):
+    sd = Side(style=style, color=color)
+    for r_ in range(r1, r2 + 1):
+        for c_ in range(c1, c2 + 1):
+            cell = ws.cell(row=r_, column=c_)
+            b = cell.border
+            cell.border = Border(left=sd if c_ == c1 else b.left, right=sd if c_ == c2 else b.right,
+                                 top=sd if r_ == r1 else b.top, bottom=sd if r_ == r2 else b.bottom)
+
+
+def banner(ws, title, subtitle, ncols, nav=True, nav_span=1, start_col=1):
+    """Banner superior (título + subtítulo) e barra de navegação."""
+    fill1 = PatternFill("solid", fgColor=NAVY)
+    fill2 = PatternFill("solid", fgColor=NAVY2)
+    for col in range(1, start_col + ncols):
+        ws.cell(row=1, column=col).fill = fill1
+        ws.cell(row=2, column=col).fill = fill2
+    c = ws.cell(row=1, column=start_col, value=title)
+    c.font = F_TITLE
+    c.alignment = Alignment(vertical="center")
+    c = ws.cell(row=2, column=start_col, value=subtitle)
+    c.font = Font(name=FONT, size=9, italic=True, color="DCE6F2")
+    c.alignment = Alignment(vertical="center")
+    ws.row_dimensions[1].height = 32
+    ws.row_dimensions[2].height = 18
+    if not nav:
+        return
+    for col in range(1, start_col + ncols):
+        ws.cell(row=3, column=col).fill = FILL_NAV
+    col = start_col
+    for sh in NAV:
+        if sh == ws.title:
+            c = merge(ws, 3, col, 3, col + nav_span - 1, value=sh,
+                      font=Font(name=FONT, size=8, bold=True, color=NAVY), align=Alignment(horizontal="center"))
+        else:
+            c = merge(ws, 3, col, 3, col + nav_span - 1, value=sh, font=F_NAV, align=Alignment(horizontal="center"))
+            c.hyperlink = Hyperlink(ref=c.coordinate, location=f"'{sh}'!A1", display=sh)
+        col += nav_span
+    ws.row_dimensions[3].height = 16
+
+
+def style_chart(ch, colors, kind="line", yfmt='#,##0.0,,"M"'):
+    for s_, col in zip(ch.series, colors):
+        if kind == "line":
+            s_.graphicalProperties.line.solidFill = col
+            s_.graphicalProperties.line.width = 28575
+            s_.smooth = False
+        else:
+            s_.graphicalProperties.solidFill = col
+            s_.graphicalProperties.line.solidFill = col
+    ch.legend.position = "b"
+    ch.y_axis.numFmt = yfmt
+    ch.y_axis.majorGridlines.spPr = GraphicalProperties(ln=LineProperties(solidFill="E3E7EE"))
+    ch.x_axis.delete = False
+    ch.y_axis.delete = False
+    ch.x_axis.tickLblPos = "low"
 
 
 # ================================================================ INÍCIO
 ws0 = wb.active
 ws0.title = "Início"
 ws_dash = wb.create_sheet("Dashboard")
+ws_est = wb.create_sheet("Estrutura")
 ws_in = wb.create_sheet("Pressupostos")
 ws_cx = wb.create_sheet("Capex")
 ws_p = wb.create_sheet("Pessoal")
@@ -121,11 +214,9 @@ ws_eng = [wb.create_sheet(f"M_{s}") for s in SCEN]
 
 # ================================================================ PRESSUPOSTOS
 ws = ws_in
-ws["A1"] = "PRESSUPOSTOS DO PROJETO"
-ws["A1"].font = F_TITLE
-ws["A2"] = ("Preencha apenas as células a azul com fundo amarelo. Fundo amarelo forte = pressuposto-chave "
-            "a validar. Os valores por defeito são os do projeto Cocoon (caso de teste).")
-ws["A2"].font = F_SUB
+banner(ws, "Pressupostos do projeto",
+       "Preencha apenas as células a azul (fundo amarelo). Amarelo forte = pressuposto-chave a validar. "
+       "Valores por defeito: projeto Cocoon (caso de teste).", 7)
 widths(ws, {"A": 46, "B": 3, "C": 16, "D": 16, "E": 16, "F": 16, "G": 70})
 
 r = 4
@@ -324,17 +415,15 @@ inp("TIR do promotor mínima", "Crit_TIRprom", 0.12, fmt=PCT, unit="%")
 inp("DSCR mínimo exigido", "Crit_DSCR", 1.25, fmt=MULT, unit="x")
 inp("Payback máximo do promotor", "Crit_Payback", 10, fmt=INT, unit="anos")
 inp("Múltiplo de capital (MOIC) mínimo", "Crit_MOIC", 1.5, fmt=MULT, unit="x")
-ws.freeze_panes = "B4"
+ws.freeze_panes = "A4"
 IN_LAST = r
 
 # ================================================================ CAPEX
 ws = ws_cx
 CLASSES = ["Terreno / aquisição", "Construção", "FF&E", "Gastos amortizáveis", "Fundo de maneio"]
-ws["A1"] = "PLANO DE INVESTIMENTO (CAPEX)"
-ws["A1"].font = F_TITLE
-ws["A2"] = ("Uma linha por rubrica. Classe define a amortização: Terreno não amortiza; Fundo de maneio é "
-            "recuperado na saída. O valor é distribuído em partes iguais pelo n.º de períodos.")
-ws["A2"].font = F_SUB
+banner(ws, "Plano de investimento (Capex)",
+       "Uma linha por rubrica. A classe define a amortização (terreno não amortiza; fundo de maneio é recuperado "
+       "na saída). O valor é repartido em partes iguais pelo n.º de períodos.", 10)
 widths(ws, {"A": 34, "B": 22, "C": 15, "D": 12, "E": 10, "F": 10, "G": 10, "H": 15, "I": 15, "J": 50})
 header_row(ws, 4, ["Rubrica", "Classe", "Valor (€)", "Ajuste de cenário?", "Período início",
                    "N.º períodos", "Período fim", "Valor / período", "Ajustável / período", "Notas"])
@@ -389,10 +478,8 @@ ws.freeze_panes = "A5"
 
 # ================================================================ PESSOAL
 ws = ws_p
-ws["A1"] = "QUADRO DE PESSOAL E SHARED SERVICES"
-ws["A1"].font = F_TITLE
-ws["A2"] = "Custo anual = FTE × salário × meses × (1 + bónus) × (1 + encargos). Valores do ano 1 de operação."
-ws["A2"].font = F_SUB
+banner(ws, "Quadro de pessoal e shared services",
+       "Custo anual = FTE × salário × meses × (1 + bónus) × (1 + encargos). Valores do 1.º ano de operação.", 12)
 widths(ws, {"A": 20, "B": 30, "C": 8, "D": 14, "E": 8, "F": 9, "G": 10, "H": 14, "I": 12, "J": 12, "K": 15, "L": 30})
 hdr = ["Departamento", "Função", "FTE", "Salário bruto / mês", "Meses", "Bónus %", "Encargos %",
        "Custo base", "Bónus", "Encargos", "Custo total anual", "Notas"]
@@ -495,11 +582,9 @@ ws.freeze_panes = "C5"
 
 # ================================================================ FSE
 ws = ws_f
-ws["A1"] = "FORNECIMENTOS E SERVIÇOS EXTERNOS (FSE)"
-ws["A1"].font = F_TITLE
-ws["A2"] = ("Custo anual = base × [% fixo + % variável × (ocupação / ocupação de referência)] × inflação. "
-            "Valores-base a preços do ano 1 de operação.")
-ws["A2"].font = F_SUB
+banner(ws, "Fornecimentos e serviços externos (FSE)",
+       "Custo anual = base × [% fixo + % variável × (ocupação / ocupação de referência)] × inflação. "
+       "Valores do 1.º ano de operação.", 7)
 widths(ws, {"A": 36, "B": 15, "C": 10, "D": 12, "E": 15, "F": 15, "G": 40})
 header_row(ws, 4, ["Rubrica", "Base anual (€)", "% fixo", "% variável", "Componente fixa", "Componente variável",
                    "Notas"])
@@ -540,12 +625,14 @@ FIRST, LAST = PCOLS[0], PCOLS[-1]
 HDR_ROW = 14
 
 
+GROUPS = [("camen", "cout"), ("dstart", "dstart"), ("pab", "pfi"), ("u_ebt", "u_irc"), ("inv_n", "inv_n"),
+          ("pbp", "pbj"), ("vpreco", "vcont"), ("ativo", "saida")]
+
+
 def build_engine(ws, idx, scen):
     rows = {}
-    ws["A1"] = f"MOTOR DE CÁLCULO — CENÁRIO {scen.upper()}"
-    ws["A1"].font = F_TITLE
-    ws["A2"] = "Folha 100% calculada — não editar. Altere os valores na folha Pressupostos."
-    ws["A2"].font = F_SUB
+    banner(ws, f"Motor de cálculo — cenário {scen}",
+           "Folha 100% calculada — não editar. Os valores alteram-se na folha Pressupostos.", C0 + NP - 1, nav=False)
     ws["A3"] = "Índice do cenário"
     ws["C3"] = idx
     ws["C3"].font = F_BOLD
@@ -810,6 +897,9 @@ def build_engine(ws, idx, scen):
     add("fcfi", "Cash flow do investidor financeiro", lambda c, p, R, RP: f"-{R('inv_in')}+{R('inv_out')}",
         total="sum")
 
+    add("bcf", "Cash flow do banco", lambda c, p, R, RP: f"-{R('ddes')}+{R('djur')}+{R('dcom')}+{R('damo')}+{R('dreemb')}",
+        total="sum")
+
     sec_("RÁCIOS DE DÍVIDA")
     add("cfads", "CFADS (NOI + vendas líquidas − IRC)",
         lambda c, p, R, RP: f"{R('noi')}+{R('vrec')}-{R('vcus')}-{R('irc')}", total="sum")
@@ -863,6 +953,17 @@ def build_engine(ws, idx, scen):
         ("k_rl", "Resultado líquido acumulado", f"SUM({rng('rl')})", EUR),
         ("k_lucro", "Lucro do promotor (cash in − cash out)", f"SUM({rng('fcfs')})", EUR),
         ("k_dfim", "Dívida por reembolsar após a saída", f"{LAST}{rows['dfim']}", EUR),
+        ("k_sneg", "Promotor — total investido", f"-SUMIF({rng('fcfs')},\"<0\")", EUR),
+        ("k_spos", "Promotor — total recebido", f"SUMIF({rng('fcfs')},\">0\")", EUR),
+        ("k_invout", "Investidor — total recebido", f"SUM({rng('inv_out')})", EUR),
+        ("k_brec", "Banco — total recebido (juros, comissões e capital)",
+         f"SUM({rng('djur')})+SUM({rng('dcom')})+SUM({rng('damo')})+SUM({rng('dreemb')})", EUR),
+        ("k_tirb", "TIR do banco", f"IFERROR(IRR({rng('bcf')}),\"n.a.\")", PCT),
+        ("k_ter", "Capex — terreno / aquisição", f"SUM({rng('cx_ter')})", EUR),
+        ("k_con", "Capex — construção", f"SUM({rng('cx_con')})", EUR),
+        ("k_ffe", "Capex — FF&E", f"SUM({rng('cx_ffe')})", EUR),
+        ("k_gas", "Capex — gastos amortizáveis", f"SUM({rng('cx_gas')})", EUR),
+        ("k_fdm", "Capex — fundo de maneio", f"SUM({rng('cx_fdm')})", EUR),
     ]
     for key, label, f, fmt in kpis:
         rows[key] = cur[0]
@@ -877,7 +978,12 @@ def build_engine(ws, idx, scen):
         c.number_format = fmt
         c.font = F_BOLD
         c.fill = FILL_TOT
-    ws.sheet_properties.tabColor = "808080"
+    # linhas de detalhe agrupadas (podem ser recolhidas com o botão "−" à esquerda)
+    for a_, b_ in GROUPS:
+        ws.row_dimensions.group(rows[a_], rows[b_], outline_level=1, hidden=False)
+    ws.sheet_properties.outlinePr.summaryBelow = True
+    ws.sheet_properties.tabColor = "A6A6A6"
+    ws.sheet_view.showGridLines = False
     return rows
 
 
@@ -888,28 +994,45 @@ for i, (wse, s) in enumerate(zip(ws_eng, SCEN)):
 # ================================================================ DASHBOARD
 ws = ws_dash
 ws.sheet_view.showGridLines = False
-widths(ws, {"A": 2, "B": 40, "C": 18, "D": 18, "E": 18, "F": 4, "G": 34, "H": 16, "I": 12, "J": 12})
-ws["B1"] = "=\"AVALIAÇÃO DE INVESTIMENTO — \"&UPPER(NomeProjeto)"
-ws["B1"].font = F_TITLE
-ws["B2"] = '=Localizacao&"  |  "&TipoAtivo&"  |  Análise: "&Analista'
-ws["B2"].font = F_SUB
-ws["B4"] = "Cenário em análise  ▶"
-ws["B4"].font = F_BOLD
-ws["C4"] = "Base"
-set_input(ws["C4"], key=True)
-ws["C4"].font = Font(name=FONT, size=11, bold=True, color="0000FF")
-dv_sc = DataValidation(type="list", formula1="ListaCenarios", allow_blank=False)
+widths(ws, {"A": 2, **{L(c): 12.5 for c in range(2, 14)}, "N": 2, "O": 2, "P": 22, "Q": 14})
+banner(ws, '="Avaliação de investimento  ·  "&NomeProjeto',
+       '=Localizacao&"   ·   "&TipoAtivo&"   ·   Análise: "&Analista', 13, start_col=2)
+
+ws["B5"] = "Cenário  ▸"
+ws["B5"].font = F_BOLD
+ws["B5"].alignment = Alignment(vertical="center")
+c = merge(ws, 5, 3, 5, 4, value="Base", font=Font(name=FONT, size=11, bold=True, color="0000FF"),
+          fill=FILL_KEY, border=B_IN, align=Alignment(horizontal="center", vertical="center"))
+dv_sc = DataValidation(type="list", formula1="ListaCenarios", allow_blank=False,
+                       promptTitle="Cenário", prompt="Escolha Base, Pessimista ou Otimista.")
 ws.add_data_validation(dv_sc)
-dv_sc.add(ws["C4"])
-name("CenarioAtivo", ws, "$C$4")
-ws["D4"] = "=MATCH(CenarioAtivo,ListaCenarios,0)"
-ws["D4"].font = Font(name=FONT, size=8, color="A6A6A6")
-name("CenIdx", ws, "$D$4")
-ws["G4"] = "Estado do modelo (Checks)"
-ws["G4"].font = F_BOLD
-ws["H4"] = "=ChecksStatus"
-ws["H4"].font = F_BOLD
-ws["H4"].alignment = Alignment(horizontal="center")
+dv_sc.add(ws["C5"])
+name("CenarioAtivo", ws, "$C$5")
+ws["P5"] = "=MATCH(CenarioAtivo,ListaCenarios,0)"
+ws["P5"].font = Font(name=FONT, size=8, color="BFBFBF")
+name("CenIdx", ws, "$P$5")
+ws["F5"] = "Estado do modelo"
+ws["F5"].font = F_BOLD
+ws["F5"].alignment = Alignment(horizontal="right", vertical="center")
+merge(ws, 5, 7, 5, 7, value="=ChecksStatus", font=F_BOLD, align=Alignment(horizontal="center", vertical="center"),
+      border=B_BOX)
+ws["I5"] = "Horizonte"
+ws["I5"].font = F_BOLD
+ws["I5"].alignment = Alignment(horizontal="right", vertical="center")
+c = ws["J5"]
+c.value = "=AnoSaida"
+c.number_format = ANOS
+c.alignment = Alignment(horizontal="center")
+ws["K5"] = "Abertura"
+ws["K5"].font = F_BOLD
+ws["K5"].alignment = Alignment(horizontal="right", vertical="center")
+ws["L5"] = "=AnoInicio+AnoAbertura"
+ws["L5"].alignment = Alignment(horizontal="center")
+ws.row_dimensions[5].height = 22
+for d_ in ("G5",):
+    ws.conditional_formatting.add(d_, CellIsRule(operator="equal", formula=['"OK"'], fill=FILL_OK))
+    ws.conditional_formatting.add(d_, CellIsRule(operator="equal", formula=['"ERRO"'], fill=FILL_BAD))
+    ws.conditional_formatting.add(d_, CellIsRule(operator="equal", formula=['"OK c/ avisos"'], fill=FILL_WARN))
 
 
 def eng_ref(key, col="C"):
@@ -917,195 +1040,567 @@ def eng_ref(key, col="C"):
     return "CHOOSE(CenIdx," + ",".join(f"'{w.title}'!${col}${ENG[key]}" for w in ws_eng) + ")"
 
 
-# veredicto
-ws["B6"] = "VEREDICTO"
-ws["B6"].font = F_SEC
-ws.merge_cells("C6:E6")
-ws["C6"] = ('=IF(COUNTIF($E$10:$E$14,"✗")=0,"VIÁVEL",IF(COUNTIF($E$10:$E$14,"✗")<=1,'
-            '"VIÁVEL COM RESERVAS","NÃO VIÁVEL"))')
-ws["C6"].font = Font(name=FONT, size=14, bold=True)
-ws["C6"].alignment = Alignment(horizontal="center", vertical="center")
-ws.row_dimensions[6].height = 28
-ws.conditional_formatting.add("C6:E6", FormulaRule(formula=['$C$6="VIÁVEL"'], fill=FILL_OK))
-ws.conditional_formatting.add("C6:E6", FormulaRule(formula=['$C$6="VIÁVEL COM RESERVAS"'], fill=FILL_WARN))
-ws.conditional_formatting.add("C6:E6", FormulaRule(formula=['$C$6="NÃO VIÁVEL"'], fill=FILL_BAD))
-
-header_row(ws, 9, ["Critério", "Resultado", "Mínimo / máximo", "Cumpre?"], start_col=2)
+# --- critérios (linhas 17-21) — calculados primeiro porque o veredicto e os cartões dependem deles
+CR0 = 17
 crit = [
-    ("TIR do projeto", "k_tirp", "Crit_TIRproj", PCT, ">="),
+    ("TIR do projeto (sem dívida)", "k_tirp", "Crit_TIRproj", PCT, ">="),
     ("TIR do promotor", "k_tirs", "Crit_TIRprom", PCT, ">="),
     ("DSCR mínimo", "k_dmin", "Crit_DSCR", MULT, ">="),
-    ("Payback do promotor (anos)", "k_pbs", "Crit_Payback", INT, "<="),
-    ("Múltiplo de capital (MOIC)", "k_moic", "Crit_MOIC", MULT, ">="),
+    ("Payback do promotor", "k_pbs", "Crit_Payback", ANOS, "<="),
+    ("Múltiplo de capital do promotor", "k_moic", "Crit_MOIC", MULT, ">="),
 ]
+section(ws, 15, "CRITÉRIOS DE VIABILIDADE", 6, start_col=2)
+for col, t in ((2, "Critério"), (5, "Resultado"), (6, "Limite"), (7, "Cumpre?")):
+    ws.cell(row=16, column=col, value=t)
+header_row(ws, 16, ["Critério", None, None, "Resultado", "Limite", "Cumpre?"], start_col=2)
+ws.merge_cells("B16:D16")
 for i, (lab, k, cn, fmt, op) in enumerate(crit):
-    rr = 10 + i
-    ws.cell(row=rr, column=2, value=lab)
-    c = ws.cell(row=rr, column=3, value="=" + eng_ref(k))
+    rr = CR0 + i
+    merge(ws, rr, 2, rr, 4, value=lab, border=B_ROW)
+    c = ws.cell(row=rr, column=5, value="=" + eng_ref(k))
     c.number_format = fmt
-    c = ws.cell(row=rr, column=4, value=f"={cn}")
+    c.font = F_BOLD
+    c.alignment = Alignment(horizontal="center")
+    c = ws.cell(row=rr, column=6, value=f"={cn}")
     c.number_format = fmt
     c.font = F_LINK
-    if k == "k_dmin":
-        # sem dívida não há DSCR: critério cumprido
-        f = f'=IF(ISNUMBER(C{rr}),IF(C{rr}{op}D{rr},"✓","✗"),IF(Divida=0,"✓","✗"))'
-    else:
-        f = f'=IF(ISNUMBER(C{rr}),IF(C{rr}{op}D{rr},"✓","✗"),"✗")'
-    c = ws.cell(row=rr, column=5, value=f)
     c.alignment = Alignment(horizontal="center")
-    c.font = F_BOLD
-    for col in range(2, 6):
-        ws.cell(row=rr, column=col).border = B_BOX
-ws.conditional_formatting.add("E10:E14", CellIsRule(operator="equal", formula=['"✓"'], fill=FILL_OK))
-ws.conditional_formatting.add("E10:E14", CellIsRule(operator="equal", formula=['"✗"'], fill=FILL_BAD))
+    if k == "k_dmin":
+        f = f'=IF(ISNUMBER(E{rr}),IF(E{rr}{op}F{rr},"✓","✗"),IF(Divida=0,"✓","✗"))'
+    else:
+        f = f'=IF(ISNUMBER(E{rr}),IF(E{rr}{op}F{rr},"✓","✗"),"✗")'
+    c = ws.cell(row=rr, column=7, value=f)
+    c.alignment = Alignment(horizontal="center")
+    c.font = Font(name=FONT, size=11, bold=True)
+    for col in range(2, 8):
+        ws.cell(row=rr, column=col).border = B_ROW
+CRIT_RNG = f"G{CR0}:G{CR0 + 4}"
+ws.conditional_formatting.add(CRIT_RNG, CellIsRule(operator="equal", formula=['"✓"'], fill=FILL_OK,
+                                                   font=Font(color=GREEN, bold=True)))
+ws.conditional_formatting.add(CRIT_RNG, CellIsRule(operator="equal", formula=['"✗"'], fill=FILL_BAD,
+                                                   font=Font(color=RED, bold=True)))
 
-# indicadores principais (cenário ativo) à direita
-ws["G6"] = "INDICADORES-CHAVE (cenário ativo)"
-ws["G6"].font = F_SEC
-key_list = [("Investimento total", "k_cxt", EUR), ("Dívida bancária", "k_div", EUR),
-            ("LTC (dívida / investimento)", "k_ltc", PCT), ("Subsídio a fundo perdido", "k_sub", EUR),
-            ("Investidor financeiro", "k_inv", EUR), ("Exposição máxima do promotor", "k_eqmax", EUR),
-            ("VAL do projeto", "k_valp", EUR), ("VAL do promotor", "k_vals", EUR),
-            ("TIR do capital próprio total", "k_tire", PCT), ("TIR do investidor financeiro", "k_tiri", PCT),
-            ("Payback do projeto (anos)", "k_pbj", INT), ("DSCR médio", "k_dmed", MULT),
-            ("Receita — 1.º ano", "k_r1", EUR), ("Receita — ano 5", "k_rs", EUR),
-            ("Margem EBITDA — ano 5", "k_em", PCT), ("Yield on cost (NOI ano 5)", "k_yoc", PCT),
-            ("Valor de saída (bruto)", "k_tv", EUR), ("Receita de venda de unidades", "k_vend", EUR),
-            ("Lucro líquido do promotor", "k_lucro", EUR)]
-for i, (lab, k, fmt) in enumerate(key_list):
-    rr = 7 + i
-    ws.cell(row=rr, column=7, value=lab).border = B_BOX
-    c = ws.cell(row=rr, column=8, value="=" + eng_ref(k))
-    c.number_format = fmt
-    c.border = B_BOX
-    c.font = F_BOLD
+# --- veredicto
+ws["P7"] = (f'=IF(COUNTIF({CRIT_RNG},"✗")=0,"VIÁVEL",IF(COUNTIF({CRIT_RNG},"✗")<=1,'
+            f'"VIÁVEL COM RESERVAS","NÃO VIÁVEL"))')
+ws["P7"].font = Font(name=FONT, size=8, color="BFBFBF")
+merge(ws, 7, 2, 8, 13, value=f'=P7&"     ·     cumpre "&COUNTIF({CRIT_RNG},"✓")&" de 5 critérios"',
+      font=Font(name=FONT, size=16, bold=True, color="FFFFFF"), fill=PatternFill("solid", fgColor=GREY),
+      align=Alignment(horizontal="center", vertical="center"))
+for v_, bg in (("VIÁVEL", GREEN), ("VIÁVEL COM RESERVAS", "B7791F"), ("NÃO VIÁVEL", RED)):
+    ws.conditional_formatting.add("B7:M8", FormulaRule(formula=[f'$P$7="{v_}"'],
+                                                       fill=PatternFill("solid", fgColor=bg, bgColor=bg)))
+ws.row_dimensions[7].height = 20
+ws.row_dimensions[8].height = 20
 
-# comparação de cenários
-rr = 17
-ws.cell(row=rr, column=2, value="COMPARAÇÃO DE CENÁRIOS").font = F_SEC
+# --- cartões de KPI (linhas 10-13)
+cards = [
+    ("TIR DO PROJETO", "k_tirp", PCT, '="Mínimo "&ROUND(Crit_TIRproj*100,1)&"%"', f"$G${CR0}"),
+    ("VAL DO PROJETO", "k_valp", MEUR, '="Taxa de desconto "&ROUND(TaxaDescProj*100,1)&"%"', None),
+    ("TIR DO PROMOTOR", "k_tirs", PCT, '="Mínimo "&ROUND(Crit_TIRprom*100,1)&"%"', f"$G${CR0 + 1}"),
+    ("MÚLTIPLO (MOIC)", "k_moic", MULT, '="Mínimo "&Crit_MOIC&"x"', f"$G${CR0 + 4}"),
+    ("DSCR MÍNIMO", "k_dmin", MULT, '="Mínimo "&Crit_DSCR&"x"', f"$G${CR0 + 2}"),
+    ("PAYBACK DO PROMOTOR", "k_pbs", ANOS, '="Máximo "&Crit_Payback&" anos"', f"$G${CR0 + 3}"),
+]
+for i, (lab, k, fmt, sub, crit_cell) in enumerate(cards):
+    c1 = 2 + 2 * i
+    merge(ws, 10, c1, 10, c1 + 1, value=lab, font=Font(name=FONT, size=8, bold=True, color=GREY),
+          fill=FILL_CARD, align=Alignment(horizontal="center", vertical="bottom"))
+    v = merge(ws, 11, c1, 12, c1 + 1, value="=" + eng_ref(k), font=Font(name=FONT, size=20, bold=True, color=NAVY),
+              fill=FILL_CARD, fmt=fmt, align=Alignment(horizontal="center", vertical="center"))
+    merge(ws, 13, c1, 13, c1 + 1, value=sub, font=Font(name=FONT, size=8, italic=True, color=GREY),
+          fill=FILL_CARD, align=Alignment(horizontal="center", vertical="top"))
+    for col in (c1, c1 + 1):
+        ws.cell(row=10, column=col).border = Border(top=Side(style="thick", color=BLUE))
+    rng_v = f"{L(c1)}11:{L(c1 + 1)}12"
+    if crit_cell:
+        ws.conditional_formatting.add(rng_v, FormulaRule(formula=[f'{crit_cell}="✓"'], font=Font(color=GREEN)))
+        ws.conditional_formatting.add(rng_v, FormulaRule(formula=[f'{crit_cell}="✗"'], font=Font(color=RED)))
+    else:
+        ws.conditional_formatting.add(rng_v, FormulaRule(formula=[f'{L(c1)}11<0'], font=Font(color=RED)))
+        ws.conditional_formatting.add(rng_v, FormulaRule(formula=[f'{L(c1)}11>0'], font=Font(color=GREEN)))
+ws.row_dimensions[10].height = 18
+ws.row_dimensions[11].height = 20
+ws.row_dimensions[12].height = 20
+
+# --- fontes e aplicações (direita, linhas 15-22)
+section(ws, 15, "FONTES DE FINANCIAMENTO", 5, start_col=9)
+header_row(ws, 16, ["Fonte", None, "Montante", "% do total", "Entidade"], start_col=9)
+ws.merge_cells("I16:J16")
+FS0 = 17
+src = [("Dívida bancária", "=" + eng_ref("k_div"), "=BancoNome"),
+       ("Subsídio a fundo perdido", "=" + eng_ref("k_sub"), "=SubNome"),
+       ("Investidor financeiro", "=" + eng_ref("k_inv"), "=InvNome"),
+       ("Capital próprio do promotor", f"=K{FS0 + 4}-SUM(K{FS0}:K{FS0 + 2})", "=PromotorNome")]
+for i, (lab, f, ent) in enumerate(src):
+    rr = FS0 + i
+    merge(ws, rr, 9, rr, 10, value=lab, border=B_ROW)
+    c = ws.cell(row=rr, column=11, value=f)
+    c.number_format = MEUR
+    c.border = B_ROW
+    c = ws.cell(row=rr, column=12, value=f"=IF($K${FS0 + 4}>0,K{rr}/$K${FS0 + 4},0)")
+    c.number_format = PCT
+    c.border = B_ROW
+    c = ws.cell(row=rr, column=13, value=ent)
+    c.font = Font(name=FONT, size=8, color=GREY)
+    c.border = B_ROW
+    c.alignment = Alignment(shrink_to_fit=True)
+rr = FS0 + 4
+merge(ws, rr, 9, rr, 10, value="Total = investimento", font=F_BOLD, border=B_TOT)
+c = ws.cell(row=rr, column=11, value="=" + eng_ref("k_cxt"))
+c.number_format = MEUR
+c.font = F_BOLD
+c.border = B_TOT
+for col in (12, 13):
+    ws.cell(row=rr, column=col).border = B_TOT
+ws.cell(row=rr, column=12, value=f"=SUM(L{FS0}:L{FS0 + 3})").number_format = PCT
+ws.conditional_formatting.add(f"L{FS0}:L{FS0 + 3}",
+                              DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1,
+                                          color="9DC3E6", showValue=True))
 rr += 1
-header_row(ws, rr, ["Indicador"] + SCEN, start_col=2)
-comp = [("TIR do projeto", "k_tirp", PCT), ("VAL do projeto", "k_valp", EUR), ("TIR do promotor", "k_tirs", PCT),
-        ("VAL do promotor", "k_vals", EUR), ("MOIC do promotor", "k_moic", MULT),
-        ("Payback do promotor (anos)", "k_pbs", INT), ("DSCR mínimo", "k_dmin", MULT),
-        ("Exposição máxima do promotor", "k_eqmax", EUR), ("Receita — ano 5", "k_rs", EUR),
-        ("EBITDA — ano 5", "k_es", EUR), ("Investimento total", "k_cxt", EUR)]
+merge(ws, rr, 9, rr, 10, value="Exposição máxima do promotor", font=F_SUB)
+c = ws.cell(row=rr, column=11, value="=" + eng_ref("k_eqmax"))
+c.number_format = MEUR
+c.font = F_SUB
+ws.cell(row=rr, column=12, value="inclui adiantamento do subsídio").font = Font(name=FONT, size=7, italic=True,
+                                                                                  color=GREY)
+
+# --- comparação de cenários (esquerda, 24+)
+section(ws, 24, "COMPARAÇÃO DE CENÁRIOS", 6, start_col=2)
+header_row(ws, 25, ["Indicador", None, None] + SCEN, start_col=2)
+ws.merge_cells("B25:D25")
+comp = [("TIR do projeto", "k_tirp", PCT), ("VAL do projeto", "k_valp", MEUR), ("TIR do promotor", "k_tirs", PCT),
+        ("VAL do promotor", "k_vals", MEUR), ("Múltiplo do promotor (MOIC)", "k_moic", MULT),
+        ("Payback do promotor", "k_pbs", ANOS), ("DSCR mínimo", "k_dmin", MULT),
+        ("Exposição máxima do promotor", "k_eqmax", MEUR), ("Receita — ano 5", "k_rs", MEUR),
+        ("EBITDA — ano 5", "k_es", MEUR), ("Investimento total", "k_cxt", MEUR)]
+rr = 25
 for lab, k, fmt in comp:
     rr += 1
-    ws.cell(row=rr, column=2, value=lab).border = B_BOX
+    merge(ws, rr, 2, rr, 4, value=lab, border=B_ROW)
     for j, w in enumerate(ws_eng):
-        c = ws.cell(row=rr, column=3 + j, value=f"='{w.title}'!$C${ENG[k]}")
+        c = ws.cell(row=rr, column=5 + j, value=f"='{w.title}'!$C${ENG[k]}")
         c.number_format = fmt
-        c.border = B_BOX
+        c.border = B_ROW
+        c.alignment = Alignment(horizontal="center")
+ws.conditional_formatting.add(f"E26:G{rr}", FormulaRule(formula=["E$25=CenarioAtivo"],
+                                                        fill=PatternFill("solid", fgColor="DDEBF7", bgColor="DDEBF7"),
+                                                        font=Font(bold=True)))
 COMP_END = rr
 
-# fontes e aplicações (período 0 + subsídio)
-rr = COMP_END + 2
-ws.cell(row=rr, column=2, value="FONTES E APLICAÇÕES (cenário ativo)").font = F_SEC
-rr += 1
-header_row(ws, rr, ["Fonte", "Montante (€)", "% do total"], start_col=2)
-s0 = rr + 1
-src = [("Dívida bancária", "=" + eng_ref("k_div")), ("Subsídio a fundo perdido", "=" + eng_ref("k_sub")),
-       ("Investidor financeiro", "=" + eng_ref("k_inv")),
-       ("Capital próprio do promotor", f"=C{s0 + 4}-SUM(C{s0}:C{s0 + 2})")]
-for lab, f in src:
+# --- indicadores operacionais (direita, 24+)
+section(ws, 24, "INDICADORES DO PROJETO (cenário ativo)", 5, start_col=9)
+header_row(ws, 25, ["Indicador", None, None, "Valor", None], start_col=9)
+ws.merge_cells("I25:K25")
+ws.merge_cells("L25:M25")
+key_list = [("Investimento total", "k_cxt", MEUR), ("Dívida / investimento (LTC)", "k_ltc", PCT),
+            ("TIR do capital próprio total", "k_tire", PCT), ("TIR do investidor financeiro", "k_tiri", PCT),
+            ("Payback do projeto", "k_pbj", ANOS), ("DSCR médio", "k_dmed", MULT),
+            ("Receita — 1.º ano de operação", "k_r1", MEUR), ("Receita — ano 5", "k_rs", MEUR),
+            ("Margem EBITDA — ano 5", "k_em", PCT), ("Yield on cost (NOI ano 5)", "k_yoc", PCT),
+            ("Valor de saída (bruto)", "k_tv", MEUR), ("Receita de venda de unidades", "k_vend", MEUR),
+            ("Lucro líquido do promotor", "k_lucro", MEUR)]
+rr = 25
+for lab, k, fmt in key_list:
     rr += 1
-    ws.cell(row=rr, column=2, value=lab).border = B_BOX
-    c = ws.cell(row=rr, column=3, value=f)
+    merge(ws, rr, 9, rr, 11, value=lab, border=B_ROW)
+    merge(ws, rr, 12, rr, 13, value="=" + eng_ref(k), fmt=fmt, font=F_BOLD, border=B_ROW,
+          align=Alignment(horizontal="right"))
+KPI_END = rr
+DASH_CHART_ROW = max(COMP_END, KPI_END) + 2
+section(ws, DASH_CHART_ROW, "EVOLUÇÃO E COMPOSIÇÃO (cenário ativo)", 12, start_col=2)
+
+# dados auxiliares para o gráfico de aplicações
+ws["P9"] = "Dados dos gráficos"
+ws["P9"].font = Font(name=FONT, size=8, bold=True, color=GREY)
+AP0 = 10
+for i, (lab, k) in enumerate((("Terreno / aquisição", "k_ter"), ("Construção", "k_con"), ("FF&E", "k_ffe"),
+                              ("Gastos amortizáveis", "k_gas"), ("Fundo de maneio", "k_fdm"))):
+    ws.cell(row=AP0 + i, column=16, value=lab).font = Font(name=FONT, size=8, color=GREY)
+    c = ws.cell(row=AP0 + i, column=17, value="=" + eng_ref(k))
     c.number_format = EUR
-    c.border = B_BOX
-    c = ws.cell(row=rr, column=4, value=f"=IF($C${s0 + 4}>0,C{rr}/$C${s0 + 4},0)")
-    c.number_format = PCT
-    c.border = B_BOX
-rr += 1
-ws.cell(row=rr, column=2, value="Total = investimento (aplicações)").font = F_BOLD
-c = ws.cell(row=rr, column=3, value="=" + eng_ref("k_cxt"))
-c.number_format = EUR
-c.font = F_BOLD
-rr += 1
-ws.cell(row=rr, column=2, value="Exposição máxima do promotor (inclui adiantamento do subsídio)")
-c = ws.cell(row=rr, column=3, value="=" + eng_ref("k_eqmax"))
-c.number_format = EUR
-DASH_CHART_ROW = rr + 3
-ws.freeze_panes = "A5"
+    c.font = Font(name=FONT, size=8, color=GREY)
+
+# ================================================================ ESTRUTURA
+ws = ws_est
+ws.sheet_view.showGridLines = False
+widths(ws, {"A": 2, **{L(c): 5.4 for c in range(2, 26)}, "Z": 2})
+banner(ws, "Estrutura de investimento",
+       "Árvore de financiadores, veículos e aplicações  ·  mapa de alocação de fundos  ·  retorno por financiador "
+       "(cenário ativo)", 25, nav_span=2, start_col=1)
+LINE = Side(style="medium", color="8497B0")
+
+
+def vline(r1, r2, col):
+    for r_ in range(r1, r2 + 1):
+        c = ws.cell(row=r_, column=col)
+        b = c.border
+        c.border = Border(left=LINE, right=b.right, top=b.top, bottom=b.bottom)
+
+
+def hline(row, c1, c2):
+    for c_ in range(c1, c2 + 1):
+        c = ws.cell(row=row, column=c_)
+        b = c.border
+        c.border = Border(left=b.left, right=b.right, top=b.top, bottom=LINE)
+
+
+def lbl(row, col, value, fmt=None, bold=False, align="left", c2=None):
+    c = merge(ws, row, col, row, c2 or col, value=value,
+              font=Font(name=FONT, size=8 if bold else 7, bold=bold, italic=not bold, color=NAVY if bold else GREY),
+              fmt=fmt, align=Alignment(horizontal=align, vertical="center"))
+    return c
+
+
+def tbox(r, c, header, name_f, amount_f, detail_f, color, amount_fmt=MEUR, name_fmt=None):
+    fill_h = PatternFill("solid", fgColor=color)
+    merge(ws, r, c, r, c + 3, value=header, font=Font(name=FONT, size=7, bold=True, color="FFFFFF"), fill=fill_h,
+          align=Alignment(horizontal="center", vertical="center"))
+    merge(ws, r + 1, c, r + 1, c + 3, value=name_f, font=Font(name=FONT, size=9, bold=True, color=NAVY),
+          fill=FILL_CARD, fmt=name_fmt, align=Alignment(horizontal="center", vertical="center", shrink_to_fit=True))
+    merge(ws, r + 2, c, r + 2, c + 3, value=amount_f, font=Font(name=FONT, size=13, bold=True, color=color),
+          fill=FILL_CARD, fmt=amount_fmt, align=Alignment(horizontal="center", vertical="center"))
+    merge(ws, r + 3, c, r + 3, c + 3, value=detail_f, font=Font(name=FONT, size=7, italic=True, color=GREY),
+          fill=FILL_CARD, align=Alignment(horizontal="center", vertical="center", wrap_text=True))
+    outline_box(ws, r, c, r + 3, c + 3, color)
+    amt = f"${L(c)}${r + 2}"
+    ws.conditional_formatting.add(f"{L(c)}{r}:{L(c + 3)}{r}", FormulaRule(
+        formula=[f"N({amt})=0"], fill=PatternFill("solid", fgColor="BFBFBF", bgColor="BFBFBF")))
+    ws.conditional_formatting.add(f"{L(c)}{r + 1}:{L(c + 3)}{r + 3}", FormulaRule(
+        formula=[f"N({amt})=0"], font=Font(color="A6A6A6")))
+
+
+section(ws, 5, "ÁRVORE DE INVESTIMENTO E FLUXOS DE CAPITAL (cenário ativo)", 24, start_col=2)
+for r_ in (9, 16, 23, 29):
+    ws.row_dimensions[r_].height = 22
+for r_ in (10, 17, 24, 30):
+    ws.row_dimensions[r_].height = 26
+C_PROM, C_BANK, C_SPV, C_PROJ, C_SUB, C_INV = "1B2A41", "2E75B6", "596780", "9C7A16", GREEN, "7B3F98"
+# nível 1 — promotor e banco
+tbox(7, 6, "PROMOTOR", "=PromotorNome", "=Est_Prom",
+     '="Capital "&ROUND(Est_Cap/1000000,2)&" M€  ·  suprimentos "&ROUND(Est_Sup/1000000,2)&" M€"', C_PROM)
+tbox(7, 18, "FINANCIAMENTO BANCÁRIO", "=BancoNome", "=" + eng_ref("k_div"),
+     '="Juro "&ROUND(Juro*100,2)&"%  ·  "&Prazo&" anos  ·  carência "&Carencia', C_BANK)
+vline(11, 12, 8)
+vline(11, 12, 20)
+hline(12, 8, 19)
+vline(13, 13, 14)
+lbl(11, 9, '=IF(UsarSPV="Sim","Capital + suprimentos","Direto à sociedade do projeto")', c2=13)
+lbl(12, 9, "=Est_Prom", fmt=MEUR, bold=True, c2=11)
+lbl(11, 21, '=IF(Est_DivSPV>0,"Empréstimo à SPV","Empréstimo à sociedade do projeto")', c2=25)
+lbl(12, 21, "=" + eng_ref("k_div"), fmt=MEUR, bold=True, c2=23)
+# nível 2 — SPV
+tbox(14, 12, "VEÍCULO INTERMÉDIO (SPV)", '=IF(UsarSPV="Sim",SPVNome,"Sem SPV")', "=Est_SPVin",
+     '=IF(UsarSPV="Sim","Detida a "&ROUND(PartPromSPV*100,1)&"% por "&PromotorNome,"Fundos entram diretamente no projeto")',
+     C_SPV)
+vline(18, 20, 14)
+lbl(18, 9, "Paga a aquisição", align="right", c2=13)
+lbl(19, 9, "=Est_SPVaq", fmt=MEUR, bold=True, align="right", c2=13)
+lbl(18, 15, "Transfere para o projeto", c2=19)
+lbl(19, 15, "=Est_SPVtr", fmt=MEUR, bold=True, c2=17)
+# nível 3 — subsídio, sociedade do projeto, investidor
+tbox(21, 2, "SUBSÍDIO A FUNDO PERDIDO", "=SubNome", "=" + eng_ref("k_sub"),
+     '="Recebido no ano "&SubsidioPer&"  ·  não reembolsável"', C_SUB)
+tbox(21, 12, "SOCIEDADE DO PROJETO", "=NomeProjeto", "=" + eng_ref("k_cxt"),
+     '="Detida a "&ROUND(PartSPVProj*100,1)&"% por "&IF(UsarSPV="Sim",SPVNome,PromotorNome)'
+     '&IF(PartInvProj>0,"  ·  "&ROUND(PartInvProj*100,1)&"% "&InvNome,"")', C_PROJ)
+tbox(21, 22, "INVESTIDOR FINANCEIRO", "=InvNome", "=" + eng_ref("k_inv"),
+     '="Recompra no ano "&MIN(InvPer+InvRecompra,AnoSaida)&"  ·  "&ROUND(InvTaxa*100,2)&"% "&LOWER(InvRegime)', C_INV)
+hline(22, 6, 11)
+hline(22, 16, 21)
+lbl(21, 6, "Fundo perdido", align="center", c2=11)
+lbl(23, 6, "=" + eng_ref("k_sub"), fmt=MEUR, bold=True, align="center", c2=11)
+lbl(21, 16, "Capital com recompra", align="center", c2=21)
+lbl(23, 16, "=" + eng_ref("k_inv"), fmt=MEUR, bold=True, align="center", c2=21)
+for col, ch_, al in ((11, "►", "right"), (16, "◄", "left")):
+    c = ws.cell(row=22, column=col, value=ch_)
+    c.font = Font(name=FONT, size=9, color="8497B0")
+    c.alignment = Alignment(horizontal=al, vertical="bottom")
+# nível 4 — aplicações
+vline(25, 25, 14)
+hline(25, 4, 23)
+for col in (4, 9, 14, 19, 24):
+    vline(26, 26, col)
+uses = [("TERRENO / AQUISIÇÃO", "k_ter"), ("CONSTRUÇÃO", "k_con"), ("FF&E", "k_ffe"),
+        ("GASTOS AMORTIZÁVEIS", "k_gas"), ("FUNDO DE MANEIO", "k_fdm")]
+for i, (lab, k) in enumerate(uses):
+    det = ('=IF(Est_SPVaq>0,"Paga pela SPV","Paga pela sociedade do projeto")' if k == "k_ter"
+           else '="Paga pela sociedade do projeto"')
+    tbox(27, 2 + 5 * i, lab, f"=IF({eng_ref('k_cxt')}>0,{eng_ref(k)}/{eng_ref('k_cxt')},0)", "=" + eng_ref(k), det,
+         "44546A", name_fmt='0.0%" do investimento"')
+lbl(32, 2, "Valores do cenário ativo (Dashboard). Caixas a cinzento = fonte ou aplicação sem montante.", c2=25)
+
+# --- configuração
+r = 34
+section(ws, r, "CONFIGURAÇÃO DA ESTRUTURA", 24, start_col=2)
+r += 1
+dv_e_sn = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=False)
+dv_e_via = DataValidation(type="list", formula1='"SPV,Sociedade do projeto"', allow_blank=False)
+ws.add_data_validation(dv_e_sn)
+ws.add_data_validation(dv_e_via)
+
+
+def est_inp(label, nm, value, fmt="@", note="", dv=None, formula=False):
+    global r
+    merge(ws, r, 2, r, 12, value=label, border=B_ROW)
+    c = merge(ws, r, 13, r, 17, value=value, fmt=fmt, align=Alignment(horizontal="center"))
+    if formula:
+        c.font = F_BOLD if formula == "calc" else F_LINK
+        for col in range(13, 18):
+            ws.cell(row=r, column=col).border = B_ROW
+    else:
+        for col in range(13, 18):
+            set_input(ws.cell(row=r, column=col))
+        c.font = F_INPUT
+    if dv is not None:
+        dv.add(c)
+    merge(ws, r, 18, r, 25, value=note, font=Font(name=FONT, size=7, italic=True, color=GREY), border=B_ROW,
+          align=Alignment(wrap_text=True, vertical="center"))
+    if len(note) > 55:
+        ws.row_dimensions[r].height = 24
+    if nm:
+        name(nm, ws, f"$M${r}")
+    r += 1
+
+
+est_inp("Nome do promotor", "PromotorNome", "Potentia Group")
+est_inp("Utilizar veículo intermédio (SPV)?", "UsarSPV", "Sim", dv=dv_e_sn,
+        note="Sim = promotor (e banco, se escolhido) financiam a SPV, que compra a sociedade.")
+est_inp("Nome do veículo", "SPVNome", "SPV Cocoon (a constituir)")
+est_inp("Participação do promotor na SPV", "PartPromSPV", 1.0, fmt=PCT)
+est_inp("Participação da SPV / promotor na sociedade do projeto", "PartSPVProj", 1.0, fmt=PCT)
+est_inp("Participação do investidor financeiro no capital do projeto", "PartInvProj", 0.0, fmt=PCT,
+        note="Informativo. O original admite 100% da SPV após a recompra.")
+est_inp("Capital social realizado pelo promotor", "CapSocial", 100000, fmt=EUR,
+        note="O restante entra como suprimentos.")
+est_inp("Nome do banco", "BancoNome", "Banco financiador (a definir)")
+est_inp("Dívida bancária contratada por", "DividaVia", "SPV", dv=dv_e_via)
+est_inp("Entidade do subsídio", "SubNome", "Portugal 2030")
+est_inp("Investidor financeiro (definido em Pressupostos)", None, "=InvNome", formula="link")
+
+r += 1
+section(ws, r, "FLUXOS CALCULADOS (cenário ativo)", 24, start_col=2)
+r += 1
+inv_tot = eng_ref("k_cxt")
+est_inp("Contribuição total do promotor (remanescente)", "Est_Prom",
+        f"={inv_tot}-{eng_ref('k_div')}-{eng_ref('k_sub')}-{eng_ref('k_inv')}", fmt=EUR, formula="calc")
+est_inp("   dos quais capital social", "Est_Cap", "=MAX(0,MIN(CapSocial,Est_Prom))", fmt=EUR, formula="calc")
+est_inp("   dos quais suprimentos", "Est_Sup", "=Est_Prom-Est_Cap", fmt=EUR, formula="calc")
+est_inp("Dívida bancária contratada pela SPV", "Est_DivSPV",
+        f'=IF(AND(UsarSPV="Sim",DividaVia="SPV"),{eng_ref("k_div")},0)', fmt=EUR, formula="calc")
+est_inp("Entradas de fundos na SPV", "Est_SPVin", '=IF(UsarSPV="Sim",Est_Prom+Est_DivSPV,0)', fmt=EUR,
+        formula="calc")
+est_inp("SPV — pagamento da aquisição", "Est_SPVaq", f'=IF(UsarSPV="Sim",MIN(Est_SPVin,{eng_ref("k_ter")}),0)',
+        fmt=EUR, formula="calc", note="Até ao limite dos fundos que recebe.")
+est_inp("SPV — transferência para a sociedade do projeto", "Est_SPVtr", "=Est_SPVin-Est_SPVaq", fmt=EUR,
+        formula="calc", note="Suprimentos / prestações acessórias.")
+est_inp("Controlo: fontes − aplicações (deve ser 0)", "Est_Ctrl",
+        f"=Est_Prom+{eng_ref('k_div')}+{eng_ref('k_sub')}+{eng_ref('k_inv')}-{inv_tot}", fmt=EUR, formula="calc")
+
+# --- mapa de alocação
+r += 1
+section(ws, r, "MAPA DE ALOCAÇÃO DE FUNDOS — QUEM FINANCIA CADA RUBRICA (cenário ativo)", 24, start_col=2)
+r += 1
+merge(ws, r, 2, r, 25, value="Preencha quanto de cada fonte financia cada rubrica. O promotor cobre o "
+      "remanescente de cada linha. As rubricas vêm da folha Capex.", font=F_SUB)
+r += 1
+AL_COLS = [(2, 7, "Rubrica"), (8, 10, "Classe"), (11, 13, "Valor"), (14, 16, "Dívida bancária"),
+           (17, 19, "Subsídio"), (20, 22, "Investidor"), (23, 25, "Promotor")]
+for c1, c2, t in AL_COLS:
+    merge(ws, r, c1, r, c2, value=t, font=F_HDR, fill=FILL_HDR,
+          align=Alignment(horizontal="center", vertical="center", wrap_text=True))
+ws.row_dimensions[r].height = 24
+r += 1
+AL0 = r
+aloc_def = {0: (6020000, 0, 0), 1: (0, 4610000, 3390000), 2: (0, 0, 383000)}
+for k in range(CX1 - CX0 + 1):
+    i = CX0 + k
+    rr = AL0 + k
+    merge(ws, rr, 2, rr, 7, value=f"=IF(Capex!A{i}=\"\",\"\",Capex!A{i})", font=F_LINK, border=B_ROW)
+    merge(ws, rr, 8, rr, 10, value=f"=IF(Capex!A{i}=\"\",\"\",Capex!B{i})",
+          font=Font(name=FONT, size=8, color=GREY), border=B_ROW)
+    merge(ws, rr, 11, rr, 13, value=(f"=N(Capex!C{i})*(1+IF(Capex!D{i}=\"Sim\",INDEX(S_AjCapex,1,CenIdx),0))"),
+          fmt=EUR, border=B_ROW)
+    dv_ = aloc_def.get(k, (None, None, None))
+    for j, c1 in enumerate((14, 17, 20)):
+        merge(ws, rr, c1, rr, c1 + 2, value=dv_[j], fmt=EUR)
+        for col in range(c1, c1 + 3):
+            set_input(ws.cell(row=rr, column=col))
+    merge(ws, rr, 23, rr, 25, value=f"=K{rr}-N{rr}-Q{rr}-T{rr}", fmt=EUR, font=F_BOLD, border=B_ROW)
+AL1 = AL0 + (CX1 - CX0)
+ws.conditional_formatting.add(f"W{AL0}:Y{AL1}", CellIsRule(operator="lessThan", formula=["-0.5"], fill=FILL_BAD))
+r = AL1 + 1
+merge(ws, r, 2, r, 10, value="Total alocado", font=F_BOLD, border=B_TOT)
+for c1 in (11, 14, 17, 20, 23):
+    merge(ws, r, c1, r, c1 + 2, value=f"=SUM({L(c1)}{AL0}:{L(c1)}{AL1})", fmt=EUR, font=F_BOLD, border=B_TOT)
+TOTR = r
+r += 1
+merge(ws, r, 2, r, 10, value="Montante disponível da fonte")
+merge(ws, r, 11, r, 13, value=f"={inv_tot}", fmt=EUR)
+for c1, f in ((14, eng_ref("k_div")), (17, eng_ref("k_sub")), (20, eng_ref("k_inv")), (23, "Est_Prom")):
+    merge(ws, r, c1, r, c1 + 2, value="=" + f, fmt=EUR, font=F_LINK)
+DISPR = r
+r += 1
+merge(ws, r, 2, r, 10, value="Por alocar (deve ser 0)", font=F_BOLD)
+for c1 in (11, 14, 17, 20, 23):
+    merge(ws, r, c1, r, c1 + 2, value=f"={L(c1)}{DISPR}-{L(c1)}{TOTR}", fmt=EUR, font=F_BOLD)
+FALTR = r
+ws.conditional_formatting.add(f"K{FALTR}:Y{FALTR}", FormulaRule(formula=[f"ABS(K{FALTR})>=1"], fill=FILL_WARN))
+ws.conditional_formatting.add(f"K{FALTR}:Y{FALTR}", FormulaRule(formula=[f"ABS(K{FALTR})<1"], fill=FILL_OK))
+name("Aloc_Falta", ws, f"$N${FALTR}:$V${FALTR}")
+name("Aloc_PromMin", ws, f"$W${AL0}:$W${AL1}")
+
+# --- retorno por financiador
+r += 2
+section(ws, r, "RETORNO POR FINANCIADOR (cenário ativo)", 24, start_col=2)
+r += 1
+RT_COLS = [(2, 7, "Financiador"), (8, 10, "Tipo"), (11, 13, "Investido"), (14, 16, "Recebido"),
+           (17, 19, "Resultado"), (20, 22, "TIR"), (23, 25, "Múltiplo")]
+for c1, c2, t in RT_COLS:
+    merge(ws, r, c1, r, c2, value=t, font=F_HDR, fill=FILL_HDR, align=Alignment(horizontal="center", vertical="center"))
+ws.row_dimensions[r].height = 22
+ret = [("=PromotorNome", "Capital próprio", eng_ref("k_sneg"), eng_ref("k_spos"), eng_ref("k_tirs")),
+       ("=InvNome", "Capital c/ recompra", eng_ref("k_inv"), eng_ref("k_invout"), eng_ref("k_tiri")),
+       ("=BancoNome", "Dívida bancária", eng_ref("k_div"), eng_ref("k_brec"), eng_ref("k_tirb")),
+       ("=SubNome", "Fundo perdido", eng_ref("k_sub"), "0", '"n.a."')]
+for nm_, tipo, inv_, rec_, tir_ in ret:
+    r += 1
+    merge(ws, r, 2, r, 7, value=nm_, font=F_BOLD, border=B_ROW)
+    merge(ws, r, 8, r, 10, value=tipo, font=Font(name=FONT, size=8, color=GREY), border=B_ROW)
+    merge(ws, r, 11, r, 13, value="=" + inv_, fmt=EUR, border=B_ROW)
+    merge(ws, r, 14, r, 16, value="=" + rec_, fmt=EUR, border=B_ROW)
+    merge(ws, r, 17, r, 19, value=f"=N{r}-K{r}", fmt=EUR, font=F_BOLD, border=B_ROW)
+    merge(ws, r, 20, r, 22, value="=" + tir_, fmt=PCT, font=F_BOLD, border=B_ROW,
+          align=Alignment(horizontal="right"))
+    merge(ws, r, 23, r, 25, value=f'=IF(K{r}>0,N{r}/K{r},"n.a.")', fmt=MULT, border=B_ROW,
+          align=Alignment(horizontal="right"))
+r += 1
+merge(ws, r, 2, r, 25, value="Promotor: investido = soma dos cash flows negativos (inclui o adiantamento do subsídio e "
+      "a recompra ao investidor); recebido = soma dos positivos (inclui o valor de saída).", font=F_SUB)
+ws.freeze_panes = "A4"
 
 # ================================================================ RELATÓRIO
 ws = ws_rep
-ws["A1"] = '="RELATÓRIO — "&UPPER(NomeProjeto)&" — CENÁRIO "&UPPER(CenarioAtivo)'
-ws["A1"].font = F_TITLE
-ws["A2"] = "Espelho do motor de cálculo do cenário escolhido no Dashboard. Não editar."
-ws["A2"].font = F_SUB
+ws.sheet_view.showGridLines = False
 widths(ws, {"A": 44, "B": 10, "C": 15})
 for col in PCOLS:
     ws.column_dimensions[col].width = 12.5
+banner(ws, '="Relatório  ·  "&NomeProjeto&"  ·  cenário "&CenarioAtivo',
+       "Exploração, resultados, investimento, dívida, saída e cash flows ano a ano. Use os botões − / + à "
+       "esquerda para recolher o detalhe. Anos após a saída a cinzento.", C0 + NP - 1)
 src_ws = ws_eng[0]
 last_row = max(v for k, v in ENG.items() if not k.startswith("k_"))
+REP_OFF = 4 - HDR_ROW
 for r_ in range(HDR_ROW, last_row + 1):
     for col in range(1, C0 + NP):
-        s = src_ws.cell(row=r_, column=col)
-        d = ws.cell(row=r_ - HDR_ROW + 4, column=col)
-        if s.value is None:
-            if s.fill and s.fill.fgColor and s.fill.fill_type:
-                d.fill = copy(s.fill)
+        s_ = src_ws.cell(row=r_, column=col)
+        d = ws.cell(row=r_ + REP_OFF, column=col)
+        if s_.value is None:
+            if s_.fill and s_.fill.fill_type:
+                d.fill = copy(s_.fill)
+                d.border = copy(s_.border)
             continue
         if col <= 2 or r_ == HDR_ROW:
-            d.value = s.value
+            d.value = s_.value
         else:
             refs = ",".join(f"'{w.title}'!{L(col)}{r_}" for w in ws_eng)
             d.value = f"=CHOOSE(CenIdx,{refs})"
-        d.font = copy(s.font)
-        d.fill = copy(s.fill)
-        d.border = copy(s.border)
-        d.number_format = s.number_format
-        d.alignment = copy(s.alignment)
-REP_OFF = 4 - HDR_ROW
-ws.freeze_panes = "D5"
+        d.font = copy(s_.font)
+        d.fill = copy(s_.fill)
+        d.border = copy(s_.border)
+        d.number_format = s_.number_format
+        d.alignment = copy(s_.alignment)
+    ws.row_dimensions[r_ + REP_OFF].height = src_ws.row_dimensions[r_].height
+for col in PCOLS:
+    ws[f"{col}4"].number_format = '"Ano "0'
+ws["C4"] = "Total"
 
 
 def rep_row(key):
     return ENG[key] + REP_OFF
 
 
-# gráficos (no Dashboard, com dados do Relatório)
+data_rng = f"D5:{LAST}{last_row + REP_OFF}"
+ws.conditional_formatting.add(data_rng, FormulaRule(formula=[f"D${rep_row('ativo')}=0"],
+                                                    font=Font(color="C0C0C0")))
+ws.conditional_formatting.add(data_rng, FormulaRule(formula=[f"D${rep_row('saida')}=1"],
+                                                    fill=PatternFill("solid", fgColor="FFF4E0", bgColor="FFF4E0")))
+for a_, b_ in GROUPS:
+    ws.row_dimensions.group(rep_row(a_), rep_row(b_), outline_level=1, hidden=False)
+ws.sheet_properties.outlinePr.summaryBelow = True
+ws.freeze_panes = "D5"
+
+# ---- gráficos (no Dashboard, com dados do Relatório)
 ch = LineChart()
-ch.title = "Receita, EBITDA e NOI (cenário ativo)"
-ch.y_axis.title = "€"
-ch.x_axis.title = "Período"
-ch.height, ch.width = 8, 17
+ch.title = "Receita, EBITDA e NOI"
+ch.height, ch.width = 7.5, 14.6
 for k in ("rtot", "ebitda", "noi"):
-    ref = Reference(ws_rep, min_col=C0 + 1, max_col=C0 + NP - 1, min_row=rep_row(k))
-    ch.add_data(ref, from_rows=True, titles_from_data=False)
+    ch.add_data(Reference(ws_rep, min_col=C0 + 1, max_col=C0 + NP - 1, min_row=rep_row(k)), from_rows=True,
+                titles_from_data=False)
 for s_, t in zip(ch.series, ("Receita", "EBITDA", "NOI")):
-    from openpyxl.chart.series import SeriesLabel
     s_.tx = SeriesLabel(v=t)
 ch.set_categories(Reference(ws_rep, min_col=C0 + 1, max_col=C0 + NP - 1, min_row=4))
-for s_ in ch.series:
-    s_.smooth = False
-ws_dash.add_chart(ch, f"B{DASH_CHART_ROW}")
+style_chart(ch, [NAVY, BLUE, GOLD])
+ws_dash.add_chart(ch, f"B{DASH_CHART_ROW + 2}")
 
 bc = BarChart()
-bc.title = "Cash flow do promotor (anual e acumulado)"
-bc.height, bc.width = 8, 17
+bc.title = "Cash flow do promotor"
+bc.height, bc.width = 7.5, 14.6
 bc.add_data(Reference(ws_rep, min_col=C0, max_col=C0 + NP - 1, min_row=rep_row("fcfs")), from_rows=True,
             titles_from_data=False)
 bc.series[0].tx = SeriesLabel(v="Anual")
 bc.set_categories(Reference(ws_rep, min_col=C0, max_col=C0 + NP - 1, min_row=4))
+style_chart(bc, [BLUE], kind="bar")
 lc = LineChart()
 lc.add_data(Reference(ws_rep, min_col=C0, max_col=C0 + NP - 1, min_row=rep_row("fcfsa")), from_rows=True,
             titles_from_data=False)
 lc.series[0].tx = SeriesLabel(v="Acumulado")
+lc.series[0].graphicalProperties.line.solidFill = GOLD
+lc.series[0].graphicalProperties.line.width = 28575
 lc.series[0].smooth = False
 bc += lc
-ws_dash.add_chart(bc, f"G{DASH_CHART_ROW}")
+ws_dash.add_chart(bc, f"H{DASH_CHART_ROW + 2}")
+
+
+def pie(title, labels_ref, data_ref, anchor, colors):
+    pc = PieChart()
+    pc.title = title
+    pc.height, pc.width = 7.5, 14.6
+    pc.add_data(data_ref, titles_from_data=False)
+    pc.set_categories(labels_ref)
+    pc.dataLabels = DataLabelList()
+    pc.dataLabels.showPercent = True
+    pc.dataLabels.showVal = False
+    pc.dataLabels.showCatName = False
+    pc.dataLabels.showSerName = False
+    pc.dataLabels.showLeaderLines = False
+    pc.legend.position = "r"
+    from openpyxl.chart.marker import DataPoint
+    for i, col in enumerate(colors):
+        pt = DataPoint(idx=i)
+        pt.graphicalProperties.solidFill = col
+        pt.graphicalProperties.line.solidFill = "FFFFFF"
+        pc.series[0].dPt.append(pt)
+    ws_dash.add_chart(pc, anchor)
+
+
+pie("Fontes de financiamento", Reference(ws_dash, min_col=9, min_row=FS0, max_row=FS0 + 3),
+    Reference(ws_dash, min_col=11, min_row=FS0, max_row=FS0 + 3), f"B{DASH_CHART_ROW + 18}",
+    [C_BANK, C_SUB, C_INV, C_PROM])
+pie("Aplicações (investimento)", Reference(ws_dash, min_col=16, min_row=AP0, max_row=AP0 + 4),
+    Reference(ws_dash, min_col=17, min_row=AP0, max_row=AP0 + 4), f"H{DASH_CHART_ROW + 18}",
+    [NAVY, BLUE, GOLD, "8497B0", "BFBFBF"])
 
 # ================================================================ CHECKS
 ws = ws_chk
-ws["A1"] = "VERIFICAÇÕES DO MODELO"
-ws["A1"].font = F_TITLE
-ws["A2"] = "Estado global"
-ws["A2"].font = F_BOLD
+ws.sheet_view.showGridLines = False
+banner(ws, "Verificações do modelo",
+       "Controlos automáticos de coerência dos pressupostos e da estrutura de cálculo. ERRO = corrigir; "
+       "AVISO = confirmar.", 4)
+ws["A5"] = "Estado global"
+ws["A5"].font = Font(name=FONT, size=11, bold=True, color=NAVY)
 widths(ws, {"A": 60, "B": 16, "C": 12, "D": 70})
-header_row(ws, 4, ["Verificação", "Valor", "Estado", "O que fazer se falhar"])
+header_row(ws, 7, ["Verificação", "Valor", "Estado", "O que fazer se falhar"])
 eng_b = ws_eng[0].title
 checks = [
     ("Período de abertura ≥ 0 e < período de saída", "=AnoSaida-AnoAbertura",
@@ -1156,10 +1651,17 @@ checks = [
     ("Unidades em exploração nunca negativas (Base)",
      f"=MIN('{eng_b}'!{FIRST}{ENG['unid']}:{LAST}{ENG['unid']})",
      f"=IF(MIN('{eng_b}'!{FIRST}{ENG['unid']}:{LAST}{ENG['unid']})>=0,\"OK\",\"ERRO\")", ""),
+    ("Estrutura: fontes = aplicações", "=Est_Ctrl", None, "Erro estrutural — contactar quem mantém o modelo."),
+    ("Mapa de alocação: dívida, subsídio e investidor totalmente alocados", "=SUMPRODUCT(ABS(Aloc_Falta))",
+     "=IF(SUMPRODUCT(ABS(Aloc_Falta))<1,\"OK\",\"AVISO\")", "Completar o mapa de alocação na folha Estrutura."),
+    ("Mapa de alocação: nenhuma rubrica com parte do promotor negativa", "=MIN(Aloc_PromMin)",
+     "=IF(MIN(Aloc_PromMin)>-1,\"OK\",\"AVISO\")", "Há fontes a financiar mais do que o valor da rubrica."),
+    ("Capital social ≤ contribuição do promotor", "=CapSocial-Est_Prom",
+     "=IF(CapSocial<=Est_Prom,\"OK\",\"AVISO\")", "Rever o capital social na folha Estrutura."),
 ]
 for i, (lab, val, st, todo) in enumerate(checks):
-    rr = 5 + i
-    ws.cell(row=rr, column=1, value=lab)
+    rr = 8 + i
+    ws.cell(row=rr, column=1, value=lab).border = B_ROW
     c = ws.cell(row=rr, column=2, value=val)
     c.number_format = '#,##0.00;(#,##0.00);"-"'
     if st is None:
@@ -1168,37 +1670,35 @@ for i, (lab, val, st, todo) in enumerate(checks):
     c.alignment = Alignment(horizontal="center")
     c.font = F_BOLD
     ws.cell(row=rr, column=4, value=todo).font = F_SUB
-CHK_END = 5 + len(checks) - 1
-ws["B2"] = (f'=IF(COUNTIF(C5:C{CHK_END},"ERRO")>0,"ERRO",IF(COUNTIF(C5:C{CHK_END},"AVISO")>0,"OK c/ avisos","OK"))')
-ws["B2"].font = F_BOLD
-name("ChecksStatus", ws, "$B$2")
-for rng_ in (f"C5:C{CHK_END}", "B2"):
+CHK_END = 8 + len(checks) - 1
+ws["B5"] = (f'=IF(COUNTIF(C8:C{CHK_END},"ERRO")>0,"ERRO",IF(COUNTIF(C8:C{CHK_END},"AVISO")>0,"OK c/ avisos","OK"))')
+ws["B5"].font = Font(name=FONT, size=11, bold=True)
+ws["B5"].alignment = Alignment(horizontal="center")
+name("ChecksStatus", ws, "$B$5")
+for rng_ in (f"C8:C{CHK_END}", "B5"):
     ws.conditional_formatting.add(rng_, CellIsRule(operator="equal", formula=['"OK"'], fill=FILL_OK))
     ws.conditional_formatting.add(rng_, CellIsRule(operator="equal", formula=['"ERRO"'], fill=FILL_BAD))
     ws.conditional_formatting.add(rng_, FormulaRule(formula=[f'ISNUMBER(SEARCH("AVISO",{rng_.split(":")[0]}))'],
                                                     fill=FILL_WARN))
-ws.conditional_formatting.add("B2", CellIsRule(operator="equal", formula=['"OK c/ avisos"'], fill=FILL_WARN))
-for d_ in ("H4",):
-    ws_dash.conditional_formatting.add(d_, CellIsRule(operator="equal", formula=['"OK"'], fill=FILL_OK))
-    ws_dash.conditional_formatting.add(d_, CellIsRule(operator="equal", formula=['"ERRO"'], fill=FILL_BAD))
-    ws_dash.conditional_formatting.add(d_, CellIsRule(operator="equal", formula=['"OK c/ avisos"'], fill=FILL_WARN))
+ws.conditional_formatting.add("B5", CellIsRule(operator="equal", formula=['"OK c/ avisos"'], fill=FILL_WARN))
+ws.freeze_panes = "A8"
 
 # ================================================================ INÍCIO (instruções)
 ws = ws0
 ws.sheet_view.showGridLines = False
 widths(ws, {"A": 2, "B": 26, "C": 100})
-ws["B2"] = "MODELO DE AVALIAÇÃO DE INVESTIMENTOS"
-ws["B2"].font = F_TITLE
-ws["B3"] = "Rentabilidade e viabilidade de projetos de turismo e imobiliário — projeção anual até 20 anos"
-ws["B3"].font = F_SUB
+banner(ws, "Modelo de avaliação de investimentos",
+       "Rentabilidade e viabilidade de projetos de turismo e imobiliário  ·  projeção anual até 20 anos  ·  "
+       "3 cenários", 2, start_col=2)
 rows_txt = [
     ("COMO USAR", None),
     ("1. Pressupostos", "Preencha todas as células a azul (fundo amarelo). Comece pelas secções 1–3 e 8."),
     ("2. Capex", "Liste as rubricas de investimento, a classe (lista), o período e em quantos períodos é pago."),
     ("3. Pessoal / FSE", "Ajuste o quadro de pessoal e os FSE da unidade (valores do 1.º ano de operação)."),
-    ("4. Dashboard", "Escolha o cenário (célula amarela) e leia o veredicto, os KPI e a comparação de cenários."),
-    ("5. Checks", "Confirme que o estado é OK. Um ERRO significa que algum pressuposto é incoerente."),
-    ("6. Relatório", "P&L, cash flow, dívida e saída do cenário ativo, ano a ano — pronto para imprimir."),
+    ("4. Estrutura", "Defina o promotor, a SPV, o banco e o mapa de alocação (que fonte financia cada rubrica)."),
+    ("5. Dashboard", "Escolha o cenário (célula amarela) e leia o veredicto, os KPI e a comparação de cenários."),
+    ("6. Checks", "Confirme que o estado é OK. Um ERRO significa que algum pressuposto é incoerente."),
+    ("7. Relatório", "P&L, cash flow, dívida e saída do cenário ativo, ano a ano — pronto para imprimir."),
     ("", None),
     ("LEGENDA", None),
     ("Texto azul / fundo amarelo claro", "Input editável."),
@@ -1246,14 +1746,16 @@ for w in wb.worksheets:
             if f.name != FONT:
                 c.font = Font(name=FONT, size=f.size or 10, bold=f.bold, italic=f.italic, color=f.color)
     w.sheet_view.zoomScale = 90
-ws_dash.sheet_properties.tabColor = "1F3864"
-ws_in.sheet_properties.tabColor = "FFC000"
-ws_cx.sheet_properties.tabColor = "FFC000"
-ws_p.sheet_properties.tabColor = "FFC000"
-ws_f.sheet_properties.tabColor = "FFC000"
-ws_rep.sheet_properties.tabColor = "70AD47"
-ws_chk.sheet_properties.tabColor = "C00000"
-for w in (ws_dash, ws_rep, ws_in, ws_chk) + tuple(ws_eng):
+    w.sheet_view.showGridLines = False
+ws0.sheet_properties.tabColor = NAVY
+ws_dash.sheet_properties.tabColor = NAVY
+ws_est.sheet_properties.tabColor = BLUE
+for w in (ws_in, ws_cx, ws_p, ws_f):
+    w.sheet_properties.tabColor = GOLD
+ws_rep.sheet_properties.tabColor = GREEN
+ws_chk.sheet_properties.tabColor = RED
+ws_dash.print_area = f"A1:N{DASH_CHART_ROW + 34}"
+for w in (ws_dash, ws_est, ws_rep, ws_in, ws_chk, ws_cx, ws_p, ws_f) + tuple(ws_eng):
     w.page_setup.orientation = "landscape"
     w.page_setup.paperSize = w.PAPERSIZE_A4
     w.page_setup.fitToWidth = 1

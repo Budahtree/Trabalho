@@ -7,7 +7,8 @@ Modelo-padrão em Excel para avaliar a rentabilidade e a viabilidade de projetos
 | Folha | Para quê |
 |---|---|
 | Início | Instruções, legenda de cores e lógica do modelo |
-| Dashboard | Veredicto (Viável / Com reservas / Não viável), KPI, comparação de cenários, fontes e aplicações, gráficos |
+| Dashboard | Veredicto (Viável / Com reservas / Não viável), cartões de KPI, critérios, comparação de cenários, fontes de financiamento e gráficos |
+| Estrutura | Árvore de investimento (promotor, banco, SPV, sociedade do projeto, subsídio, investidor e aplicações), mapa de alocação de fundos e retorno por financiador |
 | Pressupostos | Todos os inputs: calendário, cenários, operação, custos, vendas, fiscalidade, financiamento, saída, critérios |
 | Capex | Rubricas de investimento por classe, período e n.º de períodos |
 | Pessoal | Quadro de pessoal da unidade e shared services do grupo (alocados por chave) |
