@@ -21,7 +21,7 @@ from openpyxl.chart.shapes import GraphicalProperties
 from openpyxl.drawing.line import LineProperties
 from openpyxl.chart.label import DataLabelList
 from openpyxl.worksheet.hyperlink import Hyperlink
-from openpyxl.formatting.rule import DataBarRule
+from openpyxl.formatting.rule import DataBarRule, ColorScaleRule
 from openpyxl.workbook.properties import CalcProperties
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "Modelo_Avaliacao_Investimentos.xlsx"
@@ -74,7 +74,7 @@ YEAR = '0'
 
 wb = Workbook()
 names = {}
-NAV = ["Início", "Dashboard", "Estrutura", "Pressupostos", "Capex", "Pessoal", "FSE", "Relatório", "Checks"]
+NAV = ["Início", "Dashboard", "Estrutura", "Sensibilidade", "Portfólio", "Pressupostos", "Capex", "Pessoal", "FSE", "Relatório", "Checks"]
 
 
 def name(nm, ws, ref):
@@ -167,7 +167,10 @@ def banner(ws, title, subtitle, ncols, nav=True, nav_span=1, start_col=1):
     ws.row_dimensions[2].height = 18
     if not nav:
         return
-    for col in range(1, start_col + ncols):
+    last = max(start_col + ncols, start_col + len(NAV) * nav_span)
+    for col in range(1, last):
+        ws.cell(row=1, column=col).fill = fill1
+        ws.cell(row=2, column=col).fill = fill2
         ws.cell(row=3, column=col).fill = FILL_NAV
     col = start_col
     for sh in NAV:
@@ -203,6 +206,8 @@ ws0 = wb.active
 ws0.title = "Início"
 ws_dash = wb.create_sheet("Dashboard")
 ws_est = wb.create_sheet("Estrutura")
+ws_sens = wb.create_sheet("Sensibilidade")
+ws_port = wb.create_sheet("Portfólio")
 ws_in = wb.create_sheet("Pressupostos")
 ws_cx = wb.create_sheet("Capex")
 ws_p = wb.create_sheet("Pessoal")
@@ -211,6 +216,7 @@ ws_rep = wb.create_sheet("Relatório")
 ws_chk = wb.create_sheet("Checks")
 SCEN = ["Base", "Pessimista", "Otimista"]
 ws_eng = [wb.create_sheet(f"M_{s}") for s in SCEN]
+ws_scalc = wb.create_sheet("Sens_Calc")
 
 # ================================================================ PRESSUPOSTOS
 ws = ws_in
@@ -1591,6 +1597,332 @@ pie("Aplicações (investimento)", Reference(ws_dash, min_col=16, min_row=AP0, m
     Reference(ws_dash, min_col=17, min_row=AP0, max_row=AP0 + 4), f"H{DASH_CHART_ROW + 18}",
     [NAVY, BLUE, GOLD, "8497B0", "BFBFBF"])
 
+# ================================================================ SENSIBILIDADE
+# Cada ponto da grelha é um mini-motor que recalcula só o que muda (receitas, custos variáveis, NOI, IRC,
+# valor de saída, capex) a partir do cenário ativo (folha Relatório). Com variações a zero reproduz o motor.
+ws = ws_sens
+ws.sheet_view.showGridLines = False
+widths(ws, {"A": 2, "B": 30, **{L(c): 11 for c in range(3, 8)}, "H": 4, "I": 30, **{L(c): 11 for c in range(10, 15)},
+            "O": 2})
+banner(ws, '="Análise de sensibilidade  ·  "&NomeProjeto&"  ·  cenário "&CenarioAtivo',
+       "Como variam a TIR e o DSCR quando mudam as variáveis-chave. Base = cenário ativo do Dashboard (célula "
+       "destacada). Altere os passos a azul.", 13, start_col=2)
+GRID = 5
+sens_steps = {
+    "adr": [-0.10, -0.05, 0.0, 0.05, 0.10],
+    "occ": [-0.10, -0.05, 0.0, 0.05, 0.10],
+    "cpx": [-0.10, -0.05, 0.0, 0.10, 0.20],
+    "ey": [0.065, 0.07, 0.075, 0.08, 0.085],
+}
+section(ws, 5, "PASSOS DA ANÁLISE (editáveis)", 13, start_col=2)
+SGN = '+0.0%;-0.0%;0.0%'
+step_rows = [("Variação do ADR", "adr", SGN), ("Variação da ocupação (p.p.)", "occ", SGN),
+             ("Variação do investimento (capex)", "cpx", SGN), ("Exit yield", "ey", PCT)]
+STEP = {}
+for i, (lab, k, fmt) in enumerate(step_rows):
+    rr = 6 + i
+    ws.cell(row=rr, column=2, value=lab).border = B_ROW
+    for j, v in enumerate(sens_steps[k]):
+        c = ws.cell(row=rr, column=3 + j, value=v)
+        set_input(c)
+        c.number_format = fmt
+        c.alignment = Alignment(horizontal="center")
+    STEP[k] = rr
+ws.cell(row=10, column=2, value="Exit yield do cenário ativo:").font = F_SUB
+c = ws.cell(row=10, column=3, value="=INDEX(S_ExitYield,1,CenIdx)")
+c.number_format = PCT
+c.font = F_LINK
+EY_ACT = "Sensibilidade!$C$10"
+
+# ---- mini-motores (folha Sens_Calc)
+wc = ws_scalc
+banner(wc, "Cálculos da análise de sensibilidade",
+       "Folha 100% calculada — não editar. Um bloco por ponto da grelha.", C0 + NP - 1, nav=False)
+widths(wc, {"A": 40, "B": 12, "C": 14})
+for col in PCOLS:
+    wc.column_dimensions[col].width = 11
+RP_ = "'Relatório'!"
+
+
+def sens_block(top, a_ref, d_ref, k_ref, y_ref, title):
+    rows = {}
+    wc.cell(row=top, column=1, value=title).font = F_SEC
+    for i, (lab, ref) in enumerate((("ADR", a_ref), ("Ocupação", d_ref), ("Capex", k_ref), ("Exit yield", y_ref))):
+        wc.cell(row=top + 1 + i, column=1, value=lab).font = F_SUB
+        c = wc.cell(row=top + 1 + i, column=3, value="=" + ref)
+        c.number_format = PCT
+        c.font = F_LINK
+    a, d, k, y = (f"$C${top + 1}", f"$C${top + 2}", f"$C${top + 3}", f"$C${top + 4}")
+    spec = [
+        ("occ", lambda R, S, SP: f"IF({R('op')}>0,MIN(1,MAX(0,{R('occ')}+{d})),0)", PCT),
+        ("nocc", lambda R, S, SP: f"{R('ndisp')}*{S('occ')}", EUR),
+        ("rq", lambda R, S, SP: f"{S('nocc')}*{R('adr')}*(1+{a})", EUR),
+        ("rfb", lambda R, S, SP: f"IF({R('nocc')}>0,{R('rfb')}/{R('nocc')}*{S('nocc')},0)", EUR),
+        ("rout", lambda R, S, SP: f"{S('rq')}*Outros_pct", EUR),
+        ("rtot", lambda R, S, SP: f"{S('rq')}+{S('rfb')}+{S('rout')}", EUR),
+        ("cdir", lambda R, S, SP: (f"IF({R('nocc')}>0,({R('camen')}+{R('clav')})*{S('nocc')}/{R('nocc')},0)"
+                                   f"+{S('rq')}*OTA_peso*OTA_com+{S('rtot')}*TaxasPag"
+                                   f"+{S('rfb')}*(Food_peso*Food_cogs+(1-Food_peso)*Bev_cogs+FB_cons)"
+                                   f"+{S('rout')}*CustoOutros_pct"), EUR),
+        ("fse", lambda R, S, SP: (f"IF({R('op')}>0,{R('fse')}*(FSE_fix+FSE_var*IF(OcupRef>0,{S('occ')}/OcupRef,1))"
+                                  f"/MAX(1,FSE_fix+FSE_var*IF(OcupRef>0,{R('occ')}/OcupRef,1)),0)"), EUR),
+        ("gop", lambda R, S, SP: f"{S('rtot')}-{S('cdir')}-{R('pay')}-{S('fse')}", EUR),
+        ("noi", lambda R, S, SP: (f"{S('gop')}-{S('rtot')}*MgmtFee-MAX(0,{S('gop')})*IncFee-{R('ss')}"
+                                  f"-IF({R('ffe')}>0,{S('rtot')}*FFE_res,0)-{R('cxm')}"), EUR),
+        ("capex", lambda R, S, SP: f"{R('cxtot')}*(1+{k})", EUR),
+        ("ebit", lambda R, S, SP: f"{S('noi')}+{R('vres')}-{R('dtot')}*(1+{k})", EUR),
+        ("vcb", lambda R, S, SP, c=None: None, EUR),   # preenchido abaixo (precisa de intervalos acumulados)
+        ("tv", lambda R, S, SP: f"IF(AND({R('saida')}=1,{y}>0),{S('noi')}/{y},0)", EUR),
+        ("tvl", lambda R, S, SP: (f"IF({R('saida')}=1,{S('tv')}*(1-CustosSaida_pct)"
+                                  f"-MAX(0,{S('tv')}*(1-CustosSaida_pct)-{S('vcb')})*TaxaMaisValia"
+                                  f"+{R('tvf')}*(1+{k}),0)"), EUR),
+        ("upab", lambda R, S, SP: f"{SP('upfi')}", EUR),
+        ("uuso", lambda R, S, SP: f"IF({S('ebit')}>0,MIN({S('upab')},{S('ebit')}*LimitePrej),0)", EUR),
+        ("upfi", lambda R, S, SP: f"{S('upab')}+MAX(0,-{S('ebit')})-{S('uuso')}", EUR),
+        ("uirc", lambda R, S, SP: f"MAX(0,{S('ebit')}-{S('uuso')})*IRC", EUR),
+        ("fcfp", lambda R, S, SP: f"{S('noi')}+{R('cf_v')}-{S('capex')}+{R('cf_sub')}-{S('uirc')}+{S('tvl')}", EUR),
+        ("ebt", lambda R, S, SP: f"{S('ebit')}+{R('pl_fin')}", EUR),
+        ("pab", lambda R, S, SP: f"{SP('pfi')}", EUR),
+        ("puso", lambda R, S, SP: f"IF({S('ebt')}>0,MIN({S('pab')},{S('ebt')}*LimitePrej),0)", EUR),
+        ("pfi", lambda R, S, SP: f"{S('pab')}+MAX(0,-{S('ebt')})-{S('puso')}", EUR),
+        ("irc", lambda R, S, SP: f"MAX(0,{S('ebt')}-{S('puso')})*IRC", EUR),
+        ("fcfs", lambda R, S, SP: (f"{S('fcfp')}+{S('uirc')}-{S('irc')}+{R('e_des')}+{R('e_srv')}+{R('e_amo')}"
+                                   f"+{R('inv_in')}-{R('inv_out')}"), EUR),
+        ("dscr", lambda R, S, SP: (f"IF(AND({R('dserv')}>0,{R('op')}>0),"
+                                   f"({S('noi')}+{R('cf_v')}-{S('irc')})/{R('dserv')},\"\")"), MULT),
+    ]
+    r0 = top + 6
+    for i, (key, _, _) in enumerate(spec):
+        rows[key] = r0 + i
+    for key, f, fmt in spec:
+        r_ = rows[key]
+        wc.cell(row=r_, column=1, value=key).font = F_SUB
+        for i, col in enumerate(PCOLS):
+            prev = PCOLS[i - 1] if i > 0 else None
+
+            def R(kk, c=col):
+                return f"{RP_}{c}{rep_row(kk)}"
+
+            def S(kk, c=col):
+                return f"{c}{rows[kk]}"
+
+            def SP(kk, p=prev):
+                return f"{p}{rows[kk]}" if p else "0"
+            if key == "vcb":
+                fx = (f"{R('vcb')}+{k}*(SUM({RP_}${FIRST}${rep_row('cxtot')}:{col}${rep_row('cxtot')})"
+                      f"-SUM({RP_}${FIRST}${rep_row('cx_fdm')}:{col}${rep_row('cx_fdm')})"
+                      f"-SUM({RP_}${FIRST}${rep_row('dtot')}:{col}${rep_row('dtot')}))")
+            else:
+                fx = f(R, S, SP)
+            c = wc.cell(row=r_, column=C0 + i, value="=" + fx)
+            c.number_format = fmt
+    rng = lambda kk: f"{FIRST}{rows[kk]}:{LAST}{rows[kk]}"
+    kp = {
+        "tirp": f"IFERROR(IRR({rng('fcfp')}),\"n.a.\")",
+        "tirs": f"IFERROR(IRR({rng('fcfs')}),\"n.a.\")",
+        "valp": f"NPV(TaxaDescProj,{PCOLS[1]}{rows['fcfp']}:{LAST}{rows['fcfp']})+{FIRST}{rows['fcfp']}",
+        "dmin": f"IF(COUNT({rng('dscr')})=0,\"n.a.\",MIN({rng('dscr')}))",
+    }
+    out = {}
+    for i, (kk, f) in enumerate(kp.items()):
+        rr = top + 1 + i
+        wc.cell(row=rr, column=5, value=kk).font = F_SUB
+        c = wc.cell(row=rr, column=6, value="=" + f)
+        c.number_format = MULT if kk == "dmin" else (EUR if kk == "valp" else PCT)
+        c.font = F_BOLD
+        out[kk] = f"'{wc.title}'!$F${rr}"
+    return out, r0 + len(spec) + 1
+
+
+S_ = "Sensibilidade!"
+grid1, grid2 = {}, {}
+top = 5
+for i in range(GRID):
+    for j in range(GRID):
+        a_ref = f"{S_}${L(3 + j)}${STEP['adr']}"
+        d_ref = f"{S_}${L(3 + i)}${STEP['occ']}"
+        grid1[(i, j)], top = sens_block(top, a_ref, d_ref, "0", EY_ACT, f"ADR × Ocupação — ponto ({i + 1},{j + 1})")
+for i in range(GRID):
+    for j in range(GRID):
+        k_ref = f"{S_}${L(3 + i)}${STEP['cpx']}"
+        y_ref = f"{S_}${L(3 + j)}${STEP['ey']}"
+        grid2[(i, j)], top = sens_block(top, "0", "0", k_ref, y_ref, f"Capex × Exit yield — ponto ({i + 1},{j + 1})")
+wc.sheet_properties.tabColor = "A6A6A6"
+wc.sheet_view.showGridLines = False
+
+# ---- tabelas de resultados
+SCALE = ColorScaleRule(start_type="min", start_color="F8696B", mid_type="percentile", mid_value=50,
+                       mid_color="FFEB84", end_type="max", end_color="63BE7B")
+
+
+def sens_table(top, left, title, grid, kpi, fmt, row_key, col_key, row_lab, col_lab, base_rule):
+    section(ws, top, title, 6, start_col=left)
+    c = ws.cell(row=top + 1, column=left, value=f"{row_lab} ↓   ·   {col_lab} →")
+    c.font = Font(name=FONT, size=8, italic=True, color=GREY)
+    for j in range(GRID):
+        c = ws.cell(row=top + 1, column=left + 1 + j, value=f"={L(3 + j)}${STEP[col_key]}")
+        c.number_format = '+0.0%;-0.0%;0.0%' if col_key != "ey" else PCT
+        c.font = F_HDR
+        c.fill = FILL_HDR
+        c.alignment = Alignment(horizontal="center")
+    for i in range(GRID):
+        rr = top + 2 + i
+        c = ws.cell(row=rr, column=left, value=f"={L(3 + i)}${STEP[row_key]}")
+        c.number_format = '+0.0%;-0.0%;0.0%'
+        c.font = F_HDR
+        c.fill = PatternFill("solid", fgColor=NAVY2)
+        c.alignment = Alignment(horizontal="center")
+        for j in range(GRID):
+            c = ws.cell(row=rr, column=left + 1 + j, value="=" + grid[(i, j)][kpi])
+            c.number_format = fmt
+            c.alignment = Alignment(horizontal="center")
+            c.border = B_BOX
+    rng_ = f"{L(left + 1)}{top + 2}:{L(left + GRID)}{top + 1 + GRID}"
+    ws.conditional_formatting.add(rng_, SCALE)
+    tl = f"{L(left + 1)}{top + 2}"
+    rowc = f"${L(left)}{top + 2}"
+    colc = f"{L(left + 1)}${top + 1}"
+    ws.conditional_formatting.add(rng_, FormulaRule(formula=[base_rule(rowc, colc)], font=Font(bold=True, underline="single"),
+                                                    border=Border(left=Side(style="medium", color=NAVY),
+                                                                  right=Side(style="medium", color=NAVY),
+                                                                  top=Side(style="medium", color=NAVY),
+                                                                  bottom=Side(style="medium", color=NAVY))))
+    return top + 2 + GRID
+
+
+base1 = lambda rc, cc: f"AND({rc}=0,{cc}=0)"
+base2 = lambda rc, cc: f"AND({rc}=0,ROUND({cc}-{EY_ACT},6)=0)"
+t = 12
+merge(ws, t, 2, t, 14, value="1) RECEITA — variação do ADR (colunas) e da ocupação em pontos percentuais (linhas)",
+      font=Font(name=FONT, size=11, bold=True, color=NAVY))
+t += 2
+e1 = sens_table(t, 2, "TIR DO PROMOTOR", grid1, "tirs", PCT, "occ", "adr", "Ocupação", "ADR", base1)
+sens_table(t, 9, "TIR DO PROJETO", grid1, "tirp", PCT, "occ", "adr", "Ocupação", "ADR", base1)
+t = e1 + 1
+e2 = sens_table(t, 2, "DSCR MÍNIMO", grid1, "dmin", MULT, "occ", "adr", "Ocupação", "ADR", base1)
+sens_table(t, 9, "VAL DO PROJETO", grid1, "valp", MEUR, "occ", "adr", "Ocupação", "ADR", base1)
+t = e2 + 2
+merge(ws, t, 2, t, 14, value="2) INVESTIMENTO E SAÍDA — exit yield (colunas) e variação do capex (linhas)",
+      font=Font(name=FONT, size=11, bold=True, color=NAVY))
+t += 2
+e3 = sens_table(t, 2, "TIR DO PROMOTOR", grid2, "tirs", PCT, "cpx", "ey", "Capex", "Exit yield", base2)
+sens_table(t, 9, "TIR DO PROJETO", grid2, "tirp", PCT, "cpx", "ey", "Capex", "Exit yield", base2)
+t = e3 + 1
+merge(ws, t, 2, t, 14, value=("Notas: a célula sublinhada corresponde ao cenário ativo. A variação do capex aplica-se a todo o "
+                              "investimento e é financiada pelo promotor (a dívida mantém-se). A variação da ocupação "
+                              "aplica-se a todos os anos de operação, com limite de 0–100%."),
+      font=F_SUB, align=Alignment(wrap_text=True, vertical="top"))
+ws.row_dimensions[t].height = 30
+SENS_CENTER = grid1[(2, 2)]
+ws.freeze_panes = "A4"
+
+# ================================================================ PORTFÓLIO
+ws = ws_port
+ws.sheet_view.showGridLines = False
+PC = ["Projeto", "Localização", "Tipo", "Cenário", "Investimento", "Dívida", "Exposição promotor", "TIR projeto",
+      "VAL projeto", "TIR promotor", "MOIC", "Payback", "DSCR mín.", "Yield on cost", "Veredicto", "Notas / data"]
+PW = [22, 22, 20, 11, 12, 12, 12, 10, 12, 10, 8, 9, 9, 10, 24, 22]
+widths(ws, {"A": 2, **{L(2 + i): w for i, w in enumerate(PW)}})
+banner(ws, "Portfólio de projetos", "Compare projetos lado a lado. As 3 primeiras linhas são o projeto deste "
+       "ficheiro (atualizadas automaticamente); nas restantes cole os resultados de outros projetos.", 17,
+       start_col=2)
+merge(ws, 5, 2, 5, 17, value=("Como acrescentar um projeto: no ficheiro desse projeto, vá a Portfólio, copie a linha "
+                              "do cenário pretendido e cole aqui com «Colar especial → Valores». O veredicto é "
+                              "reavaliado com os critérios deste ficheiro."), font=F_SUB,
+      align=Alignment(wrap_text=True, vertical="center"))
+ws.row_dimensions[5].height = 28
+header_row(ws, 7, PC, start_col=2)
+PFMT = ["@", "@", "@", "@", MEUR, MEUR, MEUR, PCT, MEUR, PCT, MULT, ANOS, MULT, PCT, "@", "@"]
+pk = [None, None, None, None, "k_cxt", "k_div", "k_eqmax", "k_tirp", "k_valp", "k_tirs", "k_moic", "k_pbs",
+      "k_dmin", "k_yoc"]
+PR0, PR1 = 8, 37
+
+
+def verdict_f(r_):
+    ok = (f"IF(ISNUMBER(I{r_}),I{r_}>=Crit_TIRproj,FALSE)+IF(ISNUMBER(K{r_}),K{r_}>=Crit_TIRprom,FALSE)"
+          f"+IF(ISNUMBER(N{r_}),N{r_}>=Crit_DSCR,N(G{r_})=0)+IF(ISNUMBER(M{r_}),M{r_}<=Crit_Payback,FALSE)"
+          f"+IF(ISNUMBER(L{r_}),L{r_}>=Crit_MOIC,FALSE)")
+    return (f'=IF(B{r_}="","",IF(({ok})=5,"VIÁVEL",IF(({ok})=4,"VIÁVEL COM RESERVAS","NÃO VIÁVEL")))')
+
+
+for r_ in range(PR0, PR1 + 1):
+    live = r_ - PR0 < 3
+    for i, fmt in enumerate(PFMT):
+        col = 2 + i
+        c = ws.cell(row=r_, column=col)
+        c.number_format = fmt
+        c.border = B_ROW
+        if i == 14:
+            c.value = verdict_f(r_)
+            c.font = F_BOLD
+            c.alignment = Alignment(horizontal="center")
+            continue
+        if live:
+            w = ws_eng[r_ - PR0]
+            if i == 0:
+                c.value = "=NomeProjeto"
+            elif i == 1:
+                c.value = "=Localizacao"
+            elif i == 2:
+                c.value = "=TipoAtivo"
+            elif i == 3:
+                c.value = SCEN[r_ - PR0]
+            elif i == 15:
+                c.value = "Ligado a este ficheiro"
+            else:
+                c.value = f"='{w.title}'!$C${ENG[pk[i]]}"
+            c.font = F_LINK
+            c.fill = FILL_TOT
+        else:
+            set_input(c)
+for r_ in range(PR0, PR1 + 1):
+    c = ws.cell(row=r_, column=19, value=f'=IF(B{r_}="","",B{r_}&" · "&E{r_})')
+    c.font = Font(name=FONT, size=7, color="BFBFBF")
+ws.column_dimensions["S"].width = 4
+for col in range(2, 18):
+    ws.cell(row=PR0 + 2, column=col).border = Border(bottom=Side(style="medium", color=NAVY))
+for col_ in ("I", "K"):
+    ws.conditional_formatting.add(f"{col_}{PR0}:{col_}{PR1}", ColorScaleRule(
+        start_type="min", start_color="F8696B", mid_type="percentile", mid_value=50, mid_color="FFEB84",
+        end_type="max", end_color="63BE7B"))
+P_RNG = f"P{PR0}:P{PR1}"
+ws.conditional_formatting.add(P_RNG, CellIsRule(operator="equal", formula=['"VIÁVEL"'], fill=FILL_OK,
+                                                font=Font(color=GREEN, bold=True)))
+ws.conditional_formatting.add(P_RNG, CellIsRule(operator="equal", formula=['"VIÁVEL COM RESERVAS"'], fill=FILL_WARN,
+                                                font=Font(color="B7791F", bold=True)))
+ws.conditional_formatting.add(P_RNG, CellIsRule(operator="equal", formula=['"NÃO VIÁVEL"'], fill=FILL_BAD,
+                                                font=Font(color=RED, bold=True)))
+dv_cen = DataValidation(type="list", formula1='"Base,Pessimista,Otimista"', allow_blank=True)
+ws.add_data_validation(dv_cen)
+dv_cen.add(f"E{PR0 + 3}:E{PR1}")
+# resumo
+rr = PR1 + 2
+section(ws, rr, "RESUMO DO PORTFÓLIO", 16, start_col=2)
+summ = [("N.º de linhas preenchidas", f'=SUMPRODUCT(--(B{PR0}:B{PR1}<>""))', INT),
+        ("Investimento total (cenário Base deste projeto + outros projetos)",
+         f"=F{PR0}+SUM(F{PR0 + 3}:F{PR1})", MEUR),
+        ("TIR do promotor — máxima", f"=IF(COUNT(K{PR0}:K{PR1})=0,\"n.a.\",MAX(K{PR0}:K{PR1}))", PCT),
+        ("TIR do promotor — mediana", f"=IF(COUNT(K{PR0}:K{PR1})=0,\"n.a.\",MEDIAN(K{PR0}:K{PR1}))", PCT),
+        ("Linhas viáveis", f'=COUNTIF({P_RNG},"VIÁVEL")', INT)]
+for lab, f, fmt in summ:
+    rr += 1
+    merge(ws, rr, 2, rr, 4, value=lab, border=B_ROW)
+    c = ws.cell(row=rr, column=6, value=f)
+    c.number_format = fmt
+    c.font = F_BOLD
+    c.border = B_ROW
+pc_ = BarChart()
+pc_.type = "bar"
+pc_.title = "TIR do promotor por projeto / cenário"
+pc_.height, pc_.width = 9, 16
+pc_.add_data(Reference(ws, min_col=11, min_row=PR0, max_row=PR0 + 11), titles_from_data=False)
+pc_.series[0].tx = SeriesLabel(v="TIR do promotor")
+pc_.set_categories(Reference(ws, min_col=19, min_row=PR0, max_row=PR0 + 11))
+style_chart(pc_, [BLUE], kind="bar", yfmt="0%")
+pc_.legend = None
+ws.add_chart(pc_, f"I{PR1 + 2}")
+ws.freeze_panes = "C8"
+
 # ================================================================ CHECKS
 ws = ws_chk
 ws.sheet_view.showGridLines = False
@@ -1651,6 +1983,9 @@ checks = [
     ("Unidades em exploração nunca negativas (Base)",
      f"=MIN('{eng_b}'!{FIRST}{ENG['unid']}:{LAST}{ENG['unid']})",
      f"=IF(MIN('{eng_b}'!{FIRST}{ENG['unid']}:{LAST}{ENG['unid']})>=0,\"OK\",\"ERRO\")", ""),
+    ("Sensibilidade: ponto central reproduz o motor (TIR do promotor)",
+     f"=IF(AND(Sensibilidade!$E$6=0,Sensibilidade!$E$7=0,ISNUMBER({SENS_CENTER['tirs']})),"
+     f"{SENS_CENTER['tirs']}-{eng_ref('k_tirs')},0)", None, "Erro estrutural — contactar quem mantém o modelo."),
     ("Estrutura: fontes = aplicações", "=Est_Ctrl", None, "Erro estrutural — contactar quem mantém o modelo."),
     ("Mapa de alocação: dívida, subsídio e investidor totalmente alocados", "=SUMPRODUCT(ABS(Aloc_Falta))",
      "=IF(SUMPRODUCT(ABS(Aloc_Falta))<1,\"OK\",\"AVISO\")", "Completar o mapa de alocação na folha Estrutura."),
@@ -1697,6 +2032,8 @@ rows_txt = [
     ("3. Pessoal / FSE", "Ajuste o quadro de pessoal e os FSE da unidade (valores do 1.º ano de operação)."),
     ("4. Estrutura", "Defina o promotor, a SPV, o banco e o mapa de alocação (que fonte financia cada rubrica)."),
     ("5. Dashboard", "Escolha o cenário (célula amarela) e leia o veredicto, os KPI e a comparação de cenários."),
+    ("Sensibilidade", "TIR e DSCR em grelha: ADR × ocupação e capex × exit yield (passos editáveis)."),
+    ("Portfólio", "Comparação de vários projetos: cole aqui os resultados de outros ficheiros."),
     ("6. Checks", "Confirme que o estado é OK. Um ERRO significa que algum pressuposto é incoerente."),
     ("7. Relatório", "P&L, cash flow, dívida e saída do cenário ativo, ano a ano — pronto para imprimir."),
     ("", None),
@@ -1733,10 +2070,15 @@ for a, b in rows_txt:
         ws.cell(row=rr, column=3, value=b).font = F_BASE
         ws.cell(row=rr, column=3).alignment = Alignment(wrap_text=True, vertical="top")
     rr += 1
-set_input(ws["B15"])
-ws["B15"].font = Font(name=FONT, size=10, bold=True, color="0000FF")
-ws["B16"].fill = FILL_KEY
-ws["B17"].font = Font(name=FONT, size=10, bold=True, color="008000")
+for row in ws.iter_rows(min_col=2, max_col=2):
+    c = row[0]
+    if c.value == "Texto azul / fundo amarelo claro":
+        set_input(c)
+        c.font = Font(name=FONT, size=10, bold=True, color="0000FF")
+    elif c.value == "Fundo amarelo forte":
+        c.fill = FILL_KEY
+    elif c.value == "Texto verde":
+        c.font = Font(name=FONT, size=10, bold=True, color="008000")
 
 # ================================================================ acabamentos
 for w in wb.worksheets:
@@ -1750,12 +2092,14 @@ for w in wb.worksheets:
 ws0.sheet_properties.tabColor = NAVY
 ws_dash.sheet_properties.tabColor = NAVY
 ws_est.sheet_properties.tabColor = BLUE
+ws_sens.sheet_properties.tabColor = BLUE
+ws_port.sheet_properties.tabColor = BLUE
 for w in (ws_in, ws_cx, ws_p, ws_f):
     w.sheet_properties.tabColor = GOLD
 ws_rep.sheet_properties.tabColor = GREEN
 ws_chk.sheet_properties.tabColor = RED
 ws_dash.print_area = f"A1:N{DASH_CHART_ROW + 34}"
-for w in (ws_dash, ws_est, ws_rep, ws_in, ws_chk, ws_cx, ws_p, ws_f) + tuple(ws_eng):
+for w in (ws_dash, ws_est, ws_sens, ws_port, ws_rep, ws_in, ws_chk, ws_cx, ws_p, ws_f) + tuple(ws_eng):
     w.page_setup.orientation = "landscape"
     w.page_setup.paperSize = w.PAPERSIZE_A4
     w.page_setup.fitToWidth = 1
