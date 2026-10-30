@@ -24,7 +24,21 @@ from openpyxl.worksheet.hyperlink import Hyperlink
 from openpyxl.formatting.rule import DataBarRule, ColorScaleRule
 from openpyxl.workbook.properties import CalcProperties
 
-OUT = sys.argv[1] if len(sys.argv) > 1 else "Modelo_Avaliacao_Investimentos.xlsx"
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+OUT = ARGS[0] if ARGS else "Modelo_Avaliacao_Investimentos.xlsx"
+CASE = {}
+if "--caso" in sys.argv:
+    # Um caso é um ficheiro ferramentas/casos/<nome>.py com um dicionário CASE que substitui os valores por defeito
+    import importlib.util
+    import os
+    _nome = sys.argv[sys.argv.index("--caso") + 1]
+    _p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "casos", f"{_nome}.py")
+    _spec = importlib.util.spec_from_file_location("caso", _p)
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    CASE = _mod.CASE
+    ARGS = [a for a in ARGS if a != _nome]
+    OUT = ARGS[0] if ARGS else f"{_nome}.xlsx"
 
 # ---------------------------------------------------------------- estilos
 FONT = "Arial"
@@ -222,7 +236,8 @@ ws_scalc = wb.create_sheet("Sens_Calc")
 ws = ws_in
 banner(ws, "Pressupostos do projeto",
        "Preencha apenas as células a azul (fundo amarelo). Amarelo forte = pressuposto-chave a validar. "
-       "Valores por defeito: projeto Cocoon (caso de teste).", 7)
+       +
+       CASE.get("subtitulo", "Valores por defeito: projeto Cocoon (caso de teste)."), 7)
 widths(ws, {"A": 46, "B": 3, "C": 16, "D": 16, "E": 16, "F": 16, "G": 70})
 
 r = 4
@@ -231,6 +246,8 @@ r = 4
 def inp(label, nm, value, fmt=EUR, unit="", note="", key=False, valid=None):
     """Input de valor único na coluna C."""
     global r
+    value = CASE.get(nm, value)
+    note = CASE.get("nota_" + nm, note)
     ws.cell(row=r, column=1, value=label).font = F_BASE
     c = ws.cell(row=r, column=3, value=value)
     set_input(c, key)
@@ -249,6 +266,8 @@ def inp_table(label_fmt, nm, values, fmt=EUR, unit="", note=""):
     """Tabela vertical (ex.: ADR por ano) com nome para o intervalo."""
     global r
     r0 = r
+    values = CASE.get(nm, values)
+    note = CASE.get("nota_" + nm, note)
     for i, v in enumerate(values):
         ws.cell(row=r, column=1, value=label_fmt.format(i + 1)).font = F_BASE
         c = ws.cell(row=r, column=3, value=v)
@@ -290,14 +309,16 @@ inp("Período de saída / horizonte de análise", "AnoSaida", 15, fmt=INT, unit=
 
 # ---- cenários
 sec("2. CENÁRIOS — VARIÁVEIS-CHAVE (Base / Pessimista / Otimista)")
-for i, s in enumerate(SCEN):
-    c = ws.cell(row=r, column=3 + i, value=s)
-    c.font = F_HDR
-    c.fill = FILL_HDR
+SCEN_NOMES = CASE.get("nomes_cenarios", SCEN)
+for i, s_nm in enumerate(SCEN_NOMES):
+    c = ws.cell(row=r, column=3 + i, value=s_nm)
+    set_input(c)
+    c.font = Font(name=FONT, size=10, bold=True, color="0000FF")
     c.alignment = Alignment(horizontal="center")
 name("ListaCenarios", ws, f"$C${r}:$E${r}")
+SCEN_HDR = r
 ws.cell(row=r, column=1, value="Variável").font = F_BOLD
-ws.cell(row=r, column=7, value="Notas").font = F_BOLD
+ws.cell(row=r, column=7, value="Notas  (os nomes dos cenários são editáveis)").font = F_BOLD
 r += 1
 scen_inputs = [
     ("Ocupação — 1.º ano de operação", "S_Ocup1", (0.40, 0.32, 0.45), PCT, "%",
@@ -307,13 +328,20 @@ scen_inputs = [
     ("Ajuste ao ADR (sobre a tabela de ADR)", "S_AjADR", (0.0, -0.10, 0.05), PCT, "%", "0% = tabela tal como está."),
     ("Ajuste ao Capex (rubricas marcadas 'Sim')", "S_AjCapex", (0.0, 0.10, -0.05), PCT, "%",
      "Derrapagem / poupança de obra."),
-    ("Ajuste aos custos operacionais", "S_AjCustos", (0.0, 0.05, -0.03), PCT, "%",
-     "Aplica-se a payroll, FSE e custos diretos por noite."),
+    ("Ajuste aos custos diretos por noite", "S_AjCustos", (0.0, 0.05, -0.03), PCT, "%",
+     "Amenities e lavandaria."),
+    ("Ajuste ao custo de pessoal", "S_AjPessoal", (0.0, 0.05, -0.03), PCT, "%", "Sobre o quadro da folha Pessoal."),
+    ("Ajuste aos FSE", "S_AjFSE", (0.0, 0.05, -0.03), PCT, "%", "Sobre a folha FSE."),
+    ("Outras receitas — % atingida no 1.º ano de operação", "S_Ramp1", (1.0, 1.0, 1.0), PCT, "%",
+     "Ramp-up das linhas da secção 3B (restaurante externo, spa, etc.)."),
+    ("Outras receitas — % atingida no 2.º ano de operação", "S_Ramp2", (1.0, 1.0, 1.0), PCT, "%", ""),
     ("Ajuste ao preço de venda das unidades", "S_AjPreco", (0.0, -0.10, 0.05), PCT, "%", ""),
     ("Exit yield (NOI / valor de saída)", "S_ExitYield", (0.075, 0.085, 0.07), PCT, "%",
      "Modelo original tinha 0% (sem valor terminal). Valor indicativo — validar com avaliador."),
 ]
 for label, nm, vals, fmt, unit, note in scen_inputs:
+    vals = CASE.get(nm, vals)
+    note = CASE.get("nota_" + nm, note)
     ws.cell(row=r, column=1, value=label).font = F_BASE
     for i, v in enumerate(vals):
         c = ws.cell(row=r, column=3 + i, value=v)
@@ -333,6 +361,39 @@ inp("Crescimento anual do ADR (após a tabela)", "ADR_g", 0.015, fmt=PCT, unit="
 inp("Receita F&B por quarto ocupado", "FB_quarto", 62, fmt=EUR, unit="€ / noite")
 inp("Crescimento anual da receita F&B por quarto", "FB_g", 0.0, fmt=PCT, unit="% / ano")
 inp("Outros proveitos", "Outros_pct", 0.03, fmt=PCT, unit="% rec. quartos")
+
+sec("3B. OUTRAS LINHAS DE RECEITA (não dependem dos quartos: restaurante aberto ao público, spa, eventos, vinho…)")
+ws.cell(row=r, column=1, value="Linha de receita  (valor anual estabilizado, preços do 1.º ano)").font = F_BOLD
+for i in range(3):
+    c = ws.cell(row=r, column=3 + i, value=f"={L(3 + i)}${SCEN_HDR}")
+    c.font = F_BOLD
+    c.alignment = Alignment(horizontal="center")
+ws.cell(row=r, column=6, value="Custo direto %").font = F_BOLD
+ws.cell(row=r, column=7, value="Notas").font = F_BOLD
+r += 1
+REC0 = r
+rec_rows = CASE.get("outras_receitas", [
+    ("Restaurante — clientes externos", 0, 0, 0, 0.32, ""), ("Bar", 0, 0, 0, 0.25, ""),
+    ("Spa & wellness", 0, 0, 0, 0.15, ""), ("Eventos privados", 0, 0, 0, 0.35, ""),
+    ("Venda de vinho", 0, 0, 0, 0.15, ""), ("Experiências", 0, 0, 0, 0.70, "")])
+for i in range(6):
+    d = rec_rows[i] if i < len(rec_rows) else ("", 0, 0, 0, 0, "")
+    c = ws.cell(row=r, column=1, value=d[0])
+    set_input(c)
+    for j in range(3):
+        c = ws.cell(row=r, column=3 + j, value=d[1 + j])
+        set_input(c, key=(j == 0))
+        c.number_format = EUR
+    c = ws.cell(row=r, column=6, value=d[4])
+    set_input(c)
+    c.number_format = PCT
+    ws.cell(row=r, column=7, value=d[5]).font = F_SUB
+    r += 1
+name("Rec_Nome", ws, f"$A${REC0}:$A${r - 1}")
+name("Rec_Tab", ws, f"$C${REC0}:$E${r - 1}")
+name("Rec_Custo", ws, f"$F${REC0}:$F${r - 1}")
+inp("Crescimento anual das outras receitas", "Rec_g", 0.02, fmt=PCT, unit="% / ano",
+    note="Aplica-se a partir do 2.º ano de operação. O ramp-up está nos cenários (secção 2).")
 
 sec("4. OPERAÇÃO — CUSTOS DIRETOS")
 inp("Amenities e consumíveis", "C_Amen", 4, fmt=EUR2, unit="€ / noite ocup.")
@@ -434,7 +495,7 @@ widths(ws, {"A": 34, "B": 22, "C": 15, "D": 12, "E": 10, "F": 10, "G": 10, "H": 
 header_row(ws, 4, ["Rubrica", "Classe", "Valor (€)", "Ajuste de cenário?", "Período início",
                    "N.º períodos", "Período fim", "Valor / período", "Ajustável / período", "Notas"])
 ws.row_dimensions[4].height = 30
-capex_rows = [
+capex_rows = CASE.get("capex_rows") or [
     ("Aquisição da sociedade", "Terreno / aquisição", 8600000, "Não", 0, 1,
      "Compra da Cocoon (inclui terreno e edificado existente)."),
     ("Construção / fit-out", "Construção", 8000000, "Sim", 0, 1, ""),
@@ -491,7 +552,7 @@ hdr = ["Departamento", "Função", "FTE", "Salário bruto / mês", "Meses", "Bó
        "Custo base", "Bónus", "Encargos", "Custo total anual", "Notas"]
 header_row(ws, 4, hdr)
 ws.row_dimensions[4].height = 30
-fte = [("Management", "General Manager", 1, 5000, 0.10), ("Management", "Operations Manager", 0, 4200, 0.08),
+fte = CASE.get("fte") or [("Management", "General Manager", 1, 5000, 0.10), ("Management", "Operations Manager", 0, 4200, 0.08),
        ("Front Office", "Front Office Manager", 1, 2500, 0.05), ("Front Office", "Receptionist", 5, 1200, 0.02),
        ("Front Office", "Night Auditor", 2, 1300, 0.02), ("Housekeeping", "Executive Housekeeper", 1, 2800, 0.05),
        ("Housekeeping", "Room Attendant", 8, 1100, 0.02), ("F&B", "F&B Manager", 1, 3200, 0.05),
@@ -541,7 +602,7 @@ section(ws, r, "SHARED SERVICES DO GRUPO (custo central alocado por chave)", 12)
 r += 1
 header_row(ws, r, hdr, 1)
 r += 1
-ss = [("Shared Services", "Procurement", 1, 2500, 14, 0.05, 0.25, "Interno"),
+ss = CASE.get("ss") or [("Shared Services", "Procurement", 1, 2500, 14, 0.05, 0.25, "Interno"),
       ("Shared Services", "Sales Manager", 1, 3200, 14, 0.05, 0.25, "Interno"),
       ("Shared Services", "Accountant + TOC", 1, 6000, 12, 0, 0, "Serviço externo"),
       ("Shared Services", "HR / Admin", 1, 2500, 12, 0, 0, "Serviço externo"),
@@ -562,7 +623,7 @@ SST = r
 r += 2
 ws.cell(row=r, column=1, value="Chaves do portefólio que partilham o custo").font = F_BOLD
 r += 1
-port = [("Cocoon (este projeto)", 48), ("Alisios", 117), ("Évora", 27), ("VDT", 43), (None, None), (None, None)]
+port = CASE.get("port") or [("Cocoon (este projeto)", 48), ("Alisios", 117), ("Évora", 27), ("VDT", 43), (None, None), (None, None)]
 K0 = r
 for nm_, keys in port:
     c1 = ws.cell(row=r, column=2, value=nm_)
@@ -595,7 +656,7 @@ widths(ws, {"A": 36, "B": 15, "C": 10, "D": 12, "E": 15, "F": 15, "G": 40})
 header_row(ws, 4, ["Rubrica", "Base anual (€)", "% fixo", "% variável", "Componente fixa", "Componente variável",
                    "Notas"])
 ws.row_dimensions[4].height = 30
-fse = [("Utilities", 230000, 0.75), ("IT", 75000, 1.0), ("Manutenção", 160000, 0.75),
+fse = CASE.get("fse") or [("Utilities", 230000, 0.75), ("IT", 75000, 1.0), ("Manutenção", 160000, 0.75),
        ("Jardinagem / piscina / exteriores", 60000, 0.75), ("Segurança / vigilância", 50000, 0.75),
        ("Outros FSE", 80000, 0.75)]
 F0, F1 = 5, 19
@@ -628,10 +689,10 @@ NP = 21                      # períodos 0..20
 C0 = 4                       # coluna D = período 0
 PCOLS = [L(C0 + i) for i in range(NP)]
 FIRST, LAST = PCOLS[0], PCOLS[-1]
-HDR_ROW = 14
+HDR_ROW = 18
 
 
-GROUPS = [("camen", "cout"), ("dstart", "dstart"), ("pab", "pfi"), ("u_ebt", "u_irc"), ("inv_n", "inv_n"),
+GROUPS = [("camen", "cxo"), ("dstart", "dstart"), ("pab", "pfi"), ("u_ebt", "u_irc"), ("inv_n", "inv_n"),
           ("pbp", "pbj"), ("vpreco", "vcont"), ("ativo", "saida")]
 
 
@@ -739,7 +800,11 @@ def build_engine(ws, idx, scen):
     add("rfb", "Receita F&B",
         lambda c, p, R, RP: f"IF({R('op')}>0,{R('nocc')}*FB_quarto*(1+FB_g)^({R('op')}-1),0)", total="sum")
     add("rout", "Outros proveitos", lambda c, p, R, RP: f"{R('rq')}*Outros_pct", total="sum")
-    add("rtot", "RECEITA OPERACIONAL TOTAL", lambda c, p, R, RP: f"SUM({c}{rows['rq']}:{c}{rows['rout']})",
+    for i in range(1, 7):
+        add(f"rx{i}", f'=IF(INDEX(Rec_Nome,{i})="","Outra receita {i}",INDEX(Rec_Nome,{i}))',
+            lambda c, p, R, RP, i=i: (f"IF({R('op')}>0,INDEX(Rec_Tab,{i},$C$3)*IF({R('op')}=1,{prm['S_Ramp1']},"
+                                      f"IF({R('op')}=2,{prm['S_Ramp2']},1))*(1+Rec_g)^({R('op')}-1),0)"), total="sum")
+    add("rtot", "RECEITA OPERACIONAL TOTAL", lambda c, p, R, RP: f"SUM({c}{rows['rq']}:{c}{rows['rx6']})",
         total="sum", bold=True)
     aj = prm["S_AjCustos"]
     add("camen", "Amenities e consumíveis",
@@ -752,13 +817,16 @@ def build_engine(ws, idx, scen):
     add("cbev", "Beverage COGS", lambda c, p, R, RP: f"{R('rfb')}*(1-Food_peso)*Bev_cogs", total="sum")
     add("cfbc", "Consumíveis F&B", lambda c, p, R, RP: f"{R('rfb')}*FB_cons", total="sum")
     add("cout", "Custo direto de outros proveitos", lambda c, p, R, RP: f"{R('rout')}*CustoOutros_pct", total="sum")
-    add("cdir", "Total custos diretos", lambda c, p, R, RP: f"SUM({c}{rows['camen']}:{c}{rows['cout']})",
+    add("cxo", "Custo direto das outras receitas",
+        lambda c, p, R, RP: "+".join(f"{R(f'rx{i}')}*INDEX(Rec_Custo,{i})" for i in range(1, 7)), total="sum")
+    add("cdir", "Total custos diretos", lambda c, p, R, RP: f"SUM({c}{rows['camen']}:{c}{rows['cxo']})",
         total="sum", line=True)
     add("pay", "Pessoal (payroll)",
-        lambda c, p, R, RP: f"IF({R('op')}>0,Payroll_base*(1+InflSal)^({R('op')}-1)*(1+{aj}),0)", total="sum")
+        lambda c, p, R, RP: f"IF({R('op')}>0,Payroll_base*(1+InflSal)^({R('op')}-1)*(1+{prm['S_AjPessoal']}),0)",
+        total="sum")
     add("fse", "FSE",
         lambda c, p, R, RP: (f"IF({R('op')}>0,(FSE_fix+FSE_var*IF(OcupRef>0,{R('occ')}/OcupRef,1))"
-                             f"*(1+InflFSE)^({R('op')}-1)*(1+{aj}),0)"), total="sum")
+                             f"*(1+InflFSE)^({R('op')}-1)*(1+{prm['S_AjFSE']}),0)"), total="sum")
     add("gop", "GOP (resultado operacional bruto)",
         lambda c, p, R, RP: f"{R('rtot')}-{R('cdir')}-{R('pay')}-{R('fse')}", total="sum", bold=True)
     add("gopm", "Margem GOP", lambda c, p, R, RP: f"IF({R('rtot')}>0,{R('gop')}/{R('rtot')},0)", unit="%", fmt=PCT)
@@ -1007,7 +1075,7 @@ banner(ws, '="Avaliação de investimento  ·  "&NomeProjeto',
 ws["B5"] = "Cenário  ▸"
 ws["B5"].font = F_BOLD
 ws["B5"].alignment = Alignment(vertical="center")
-c = merge(ws, 5, 3, 5, 4, value="Base", font=Font(name=FONT, size=11, bold=True, color="0000FF"),
+c = merge(ws, 5, 3, 5, 4, value=SCEN_NOMES[0], font=Font(name=FONT, size=11, bold=True, color="0000FF"),
           fill=FILL_KEY, border=B_IN, align=Alignment(horizontal="center", vertical="center"))
 dv_sc = DataValidation(type="list", formula1="ListaCenarios", allow_blank=False,
                        promptTitle="Cenário", prompt="Escolha Base, Pessimista ou Otimista.")
@@ -1173,7 +1241,8 @@ ws.cell(row=rr, column=12, value="inclui adiantamento do subsídio").font = Font
 
 # --- comparação de cenários (esquerda, 24+)
 section(ws, 24, "COMPARAÇÃO DE CENÁRIOS", 6, start_col=2)
-header_row(ws, 25, ["Indicador", None, None] + SCEN, start_col=2)
+header_row(ws, 25, ["Indicador", None, None] + [f"=INDEX(ListaCenarios,1,{j + 1})" for j in range(3)],
+           start_col=2)
 ws.merge_cells("B25:D25")
 comp = [("TIR do projeto", "k_tirp", PCT), ("VAL do projeto", "k_valp", MEUR), ("TIR do promotor", "k_tirs", PCT),
         ("VAL do promotor", "k_vals", MEUR), ("Múltiplo do promotor (MOIC)", "k_moic", MULT),
@@ -1348,6 +1417,8 @@ ws.add_data_validation(dv_e_via)
 
 def est_inp(label, nm, value, fmt="@", note="", dv=None, formula=False):
     global r
+    if nm and not formula:
+        value = CASE.get(nm, value)
     merge(ws, r, 2, r, 12, value=label, border=B_ROW)
     c = merge(ws, r, 13, r, 17, value=value, fmt=fmt, align=Alignment(horizontal="center"))
     if formula:
@@ -1418,7 +1489,7 @@ for c1, c2, t in AL_COLS:
 ws.row_dimensions[r].height = 24
 r += 1
 AL0 = r
-aloc_def = {0: (6020000, 0, 0), 1: (0, 4610000, 3390000), 2: (0, 0, 383000)}
+aloc_def = CASE.get("aloc_def") or {0: (6020000, 0, 0), 1: (0, 4610000, 3390000), 2: (0, 0, 383000)}
 for k in range(CX1 - CX0 + 1):
     i = CX0 + k
     rr = AL0 + k
@@ -1608,7 +1679,7 @@ banner(ws, '="Análise de sensibilidade  ·  "&NomeProjeto&"  ·  cenário "&Cen
        "Como variam a TIR e o DSCR quando mudam as variáveis-chave. Base = cenário ativo do Dashboard (célula "
        "destacada). Altere os passos a azul.", 13, start_col=2)
 GRID = 5
-sens_steps = {
+sens_steps = CASE.get("sens_steps") or {
     "adr": [-0.10, -0.05, 0.0, 0.05, 0.10],
     "occ": [-0.10, -0.05, 0.0, 0.05, 0.10],
     "cpx": [-0.10, -0.05, 0.0, 0.10, 0.20],
@@ -1659,11 +1730,12 @@ def sens_block(top, a_ref, d_ref, k_ref, y_ref, title):
         ("rq", lambda R, S, SP: f"{S('nocc')}*{R('adr')}*(1+{a})", EUR),
         ("rfb", lambda R, S, SP: f"IF({R('nocc')}>0,{R('rfb')}/{R('nocc')}*{S('nocc')},0)", EUR),
         ("rout", lambda R, S, SP: f"{S('rq')}*Outros_pct", EUR),
-        ("rtot", lambda R, S, SP: f"{S('rq')}+{S('rfb')}+{S('rout')}", EUR),
+        ("rtot", lambda R, S, SP: (f"{S('rq')}+{S('rfb')}+{S('rout')}"
+                                   f"+SUM({R('rx1')}:{R('rx6').split('!')[1]})"), EUR),
         ("cdir", lambda R, S, SP: (f"IF({R('nocc')}>0,({R('camen')}+{R('clav')})*{S('nocc')}/{R('nocc')},0)"
                                    f"+{S('rq')}*OTA_peso*OTA_com+{S('rtot')}*TaxasPag"
                                    f"+{S('rfb')}*(Food_peso*Food_cogs+(1-Food_peso)*Bev_cogs+FB_cons)"
-                                   f"+{S('rout')}*CustoOutros_pct"), EUR),
+                                   f"+{S('rout')}*CustoOutros_pct+{R('cxo')}"), EUR),
         ("fse", lambda R, S, SP: (f"IF({R('op')}>0,{R('fse')}*(FSE_fix+FSE_var*IF(OcupRef>0,{S('occ')}/OcupRef,1))"
                                   f"/MAX(1,FSE_fix+FSE_var*IF(OcupRef>0,{R('occ')}/OcupRef,1)),0)"), EUR),
         ("gop", lambda R, S, SP: f"{S('rtot')}-{S('cdir')}-{R('pay')}-{S('fse')}", EUR),
@@ -1866,7 +1938,7 @@ for r_ in range(PR0, PR1 + 1):
             elif i == 2:
                 c.value = "=TipoAtivo"
             elif i == 3:
-                c.value = SCEN[r_ - PR0]
+                c.value = f"=INDEX(ListaCenarios,1,{r_ - PR0 + 1})"
             elif i == 15:
                 c.value = "Ligado a este ficheiro"
             else:

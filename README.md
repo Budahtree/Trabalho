@@ -26,3 +26,15 @@ Os valores por defeito são os do projeto **Cocoon**, usado como caso de teste: 
 ```bash
 python3 ferramentas/gerar_modelo.py Modelo_Avaliacao_Investimentos.xlsx
 ```
+
+### Casos
+
+Um caso é um ficheiro `ferramentas/casos/<nome>.py` com os pressupostos que substituem os valores por defeito:
+
+```bash
+python3 ferramentas/gerar_modelo.py --caso villa_rosa Villa_Rosa_Avaliacao.xlsx
+```
+
+| Caso | Ficheiros |
+|---|---|
+| Villa Rosa (Peso da Régua) | `Villa_Rosa_Avaliacao.xlsx` (cenários Prudente / Stress / Plano do vendedor) e `Villa_Rosa_Memorando.docx` / `.md` (análise da tese de investimento) |
