@@ -3,13 +3,13 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-18 09:30 (Lisboa)
-- Email verificado até: 2026-11-18 09:30
+- Data/hora: 2026-11-18 09:45 (Lisboa)
+- Email verificado até: 2026-11-18 09:45
 
 ## Estado conhecido
-- TEC registadas até à TEC 116 (folha TEC Extra).
-- TEC a aguardar aprovação: 102, 105, 109, 110, 111, 112, 113, 115.
-- Rascunho no Outlook (11/11) a pedir à Oreco o ponto de situação das TEC 109-116: não enviado.
+- TEC registadas até à TEC 117 (folha TEC Extra). A Oreco anunciou a TEC 118 (trabalhos contratuais que não vão ser executados) no estudo de autos de 17/11 - ainda não recebida.
+- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110, 112 (aguarda retificação), 117.
+- Carpintarias Masternatura (PA-011) e chapas PT Mendes & Faustino (PA-025) marcadas como Adjudicado.
 - Autos de outubro (Contratual n.º 34 e TNC n.º 37, € 223 395,35) enviados pela Oreco a 04/11 para aprovação.
 
 ## Regras de atualização
@@ -22,3 +22,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 
 ## Histórico
 - 2026-11-18: monitorização criada.
+- 2026-11-18 09:45: TEC 109, 110, 116 repostas (faltavam na V04); TEC 111 Rev01 aprovada (1 626,39 €) e versão inicial recusada; TEC 113 aprovada (opção B, 14 205,69 €); TEC 115 aprovada (0 €); TEC 117 nova (6 427,58 €, aguarda); TEC 105 aprovada -> PA-021 Incluir = N; PA-011 Masternatura adjudicado (133 051,35 €); PA-025 Mendes & Faustino adjudicado (1 720 €).
