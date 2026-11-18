@@ -4,11 +4,11 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 
 ## Última verificação
 - Data/hora: 2026-11-18 (Lisboa), 2.ª verificação
-- Email verificado até: 2026-11-18 (enviados até 09:34)
+- Email verificado até: 2026-11-18 16:00
 
 ## Estado conhecido
-- TEC registadas até à TEC 117 (folha TEC Extra). A Oreco anunciou a TEC 118 (trabalhos contratuais que não vão ser executados) no estudo de autos de 17/11 - ainda não recebida.
-- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110, 112 (aguarda retificação).
+- TEC registadas até à TEC 120 (folha TEC Extra; a 118 ainda não foi recebida). A Oreco anunciou a TEC 118 (trabalhos contratuais que não vão ser executados) no estudo de autos de 17/11 - ainda não recebida.
+- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110. Pedido à Oreco o valor do LED nas escadas exteriores do terraço multiusos (18/11).
 - Carpintarias Masternatura (PA-011) e chapas PT Mendes & Faustino (PA-025) marcadas como Adjudicado.
 - Autos de outubro (Contratual n.º 34 e TNC n.º 37, € 223 395,35) enviados pela Oreco a 04/11 para aprovação.
 
@@ -25,3 +25,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 - 2026-11-18 09:45: TEC 109, 110, 116 repostas (faltavam na V04); TEC 111 Rev01 aprovada (1 626,39 €) e versão inicial recusada; TEC 113 aprovada (opção B, 14 205,69 €); TEC 115 aprovada (0 €); TEC 117 nova (6 427,58 €, aguarda); TEC 105 aprovada -> PA-021 Incluir = N; PA-011 Masternatura adjudicado (133 051,35 €); PA-025 Mendes & Faustino adjudicado (1 720 €).
 - 2026-11-18 (2.ª): TEC 117 aprovada (6 427,58 €, 18/11); TEC 111 Rev01 confirmada por email a 18/11 (data de aprovação atualizada). Muro 'Zig Zag' (acabamento) e Lareira Suspended (já na ENC-070) sem impacto no valor. TEC aprovadas: 3 665 993,67 € (96); pendentes: 320 464,88 € (4).
 - 2026-11-18: ENC-070 Lareira central Suspended revista para 11 925,00 € s/IVA (orçamento OR B/389 de 18/11, desconto de 10% em vez de 18%; antes 13 363,95 €). Fatura FT B/215 de 50% (5 962,50 € s/IVA) emitida a 18/11, registada na folha Faturas como FT-257 (por pagar, vence 18/11).
+- 2026-11-18 16:00: TEC 112 Rev01 (5 400,50 €), 119 (14 473,75 €) e 120 (1 440 €) aprovadas; TEC 112 inicial recusada. Fatura Mendes & Faustino FT 120022026/448 (860 €, IVA autoliquidado) registada como FT-258; PA-025 com IVA 0%. TEC aprovadas: 3 687 307,92 € (99); pendentes 314 640,17 € (3). Email semanal de 18/11 preparado em emails/.
