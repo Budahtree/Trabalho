@@ -3,12 +3,12 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-18 09:45 (Lisboa)
-- Email verificado até: 2026-11-18 09:45
+- Data/hora: 2026-11-18 (Lisboa), 2.ª verificação
+- Email verificado até: 2026-11-18 (enviados até 09:34)
 
 ## Estado conhecido
 - TEC registadas até à TEC 117 (folha TEC Extra). A Oreco anunciou a TEC 118 (trabalhos contratuais que não vão ser executados) no estudo de autos de 17/11 - ainda não recebida.
-- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110, 112 (aguarda retificação), 117.
+- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110, 112 (aguarda retificação).
 - Carpintarias Masternatura (PA-011) e chapas PT Mendes & Faustino (PA-025) marcadas como Adjudicado.
 - Autos de outubro (Contratual n.º 34 e TNC n.º 37, € 223 395,35) enviados pela Oreco a 04/11 para aprovação.
 
@@ -23,3 +23,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 ## Histórico
 - 2026-11-18: monitorização criada.
 - 2026-11-18 09:45: TEC 109, 110, 116 repostas (faltavam na V04); TEC 111 Rev01 aprovada (1 626,39 €) e versão inicial recusada; TEC 113 aprovada (opção B, 14 205,69 €); TEC 115 aprovada (0 €); TEC 117 nova (6 427,58 €, aguarda); TEC 105 aprovada -> PA-021 Incluir = N; PA-011 Masternatura adjudicado (133 051,35 €); PA-025 Mendes & Faustino adjudicado (1 720 €).
+- 2026-11-18 (2.ª): TEC 117 aprovada (6 427,58 €, 18/11); TEC 111 Rev01 confirmada por email a 18/11 (data de aprovação atualizada). Muro 'Zig Zag' (acabamento) e Lareira Suspended (já na ENC-070) sem impacto no valor. TEC aprovadas: 3 665 993,67 € (96); pendentes: 320 464,88 € (4).
