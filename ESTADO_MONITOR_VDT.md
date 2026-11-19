@@ -3,8 +3,8 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-18 17:48 (Lisboa), verificação diária automática
-- Email verificado até: 2026-11-18 17:48
+- Data/hora: 2026-11-19 17:48 (Lisboa), verificação diária automática
+- Email verificado até: 2026-11-19 17:48
 
 ## Estado conhecido
 - TEC registadas até à TEC 120 (folha TEC Extra; a 118 ainda não foi recebida). A Oreco anunciou a TEC 118 (trabalhos contratuais que não vão ser executados) no estudo de autos de 17/11 - ainda não recebida.
@@ -28,3 +28,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 - 2026-11-18 16:00: TEC 112 Rev01 (5 400,50 €), 119 (14 473,75 €) e 120 (1 440 €) aprovadas; TEC 112 inicial recusada. Fatura Mendes & Faustino FT 120022026/448 (860 €, IVA autoliquidado) registada como FT-258; PA-025 com IVA 0%. TEC aprovadas: 3 687 307,92 € (99); pendentes 314 640,17 € (3). Email semanal de 18/11 preparado em emails/.
 - 2026-11-18 17:48 (verificação diária): sem alterações ao mapa. Em curso sem valor: proposta de adjudicar via Oreco (+12,5%) o orçamento do email "Dúvida / orçamento" (aguarda o Sérgio); nicho da sala de pequenos-almoços "Avança" (sem TEC); pedidos de preço do tapete falso do restaurante e do LED das escadas exteriores.
 - 2026-11-19: o Pedro enviou nova versão do mapa (passa a ser a principal). Tinha apagado as linhas PA-011 (Masternatura, adjudicada) e PA-021 (TEC 105, Incluir = N) da Por Adjudicar e revisto a PA-022 TDRV para 49 511,99 € (IVA 0%). A PA-011 chegou a ser reposta, mas o Pedro esclareceu que a adjudicação à Masternatura já está na ENC-064 (68 905,58 €): a PA-011 era duplicado e foi retirada de novo (fica a versão dele). Regra: as linhas adjudicadas não se apagam; ficam com Estado = Adjudicado.
+- 2026-11-19 17:48 (verificação diária): sem alterações ao mapa. Revestimentos de paredes e tetos (orçamento 1664B-2026): o Pedro pediu a TEC à Oreco com os trabalhos a mais e a menos (via Oreco +12,5%), ainda sem valor. Recebida proposta retificada de CCTV (Strong Charon, 18/11), não adjudicada.
