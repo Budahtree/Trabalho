@@ -3,12 +3,12 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-19 17:48 (Lisboa), verificação diária automática
-- Email verificado até: 2026-11-19 17:48
+- Data/hora: 2026-11-20 17:48 (Lisboa), verificação diária automática
+- Email verificado até: 2026-11-20 17:48
 
 ## Estado conhecido
-- TEC registadas até à TEC 120 (folha TEC Extra; a 118 ainda não foi recebida). A Oreco anunciou a TEC 118 (trabalhos contratuais que não vão ser executados) no estudo de autos de 17/11 - ainda não recebida.
-- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110. Pedido à Oreco o valor do LED nas escadas exteriores do terraço multiusos (18/11).
+- TEC registadas até à TEC 122 (folha TEC Extra).
+- TEC a aguardar aprovação: 102, 109 (pedido esclarecimento), 110, 122 (pedida decomposição em preços unitários). Por receber: TEC dos tetos de pladur (SCR via Oreco) e dos revestimentos de paredes e tetos (via Oreco).
 - Masternatura: adjudicação registada na ENC-064 (68 905,58 €), não na Por Adjudicar. Chapas PT Mendes & Faustino (PA-025) marcadas como Adjudicado (encomenda automática na linha 156 das Encomendas).
 - Autos de outubro (Contratual n.º 34 e TNC n.º 37, € 223 395,35) enviados pela Oreco a 04/11 para aprovação.
 
@@ -30,3 +30,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 - 2026-11-19: o Pedro enviou nova versão do mapa (passa a ser a principal). Tinha apagado as linhas PA-011 (Masternatura, adjudicada) e PA-021 (TEC 105, Incluir = N) da Por Adjudicar e revisto a PA-022 TDRV para 49 511,99 € (IVA 0%). A PA-011 chegou a ser reposta, mas o Pedro esclareceu que a adjudicação à Masternatura já está na ENC-064 (68 905,58 €): a PA-011 era duplicado e foi retirada de novo (fica a versão dele). Regra: as linhas adjudicadas não se apagam; ficam com Estado = Adjudicado.
 - 2026-11-19 17:48 (verificação diária): sem alterações ao mapa. Revestimentos de paredes e tetos (orçamento 1664B-2026): o Pedro pediu a TEC à Oreco com os trabalhos a mais e a menos (via Oreco +12,5%), ainda sem valor. Recebida proposta retificada de CCTV (Strong Charon, 18/11), não adjudicada.
 - 2026-11-20: pré-opening RMS-012 Planeta dos Sonhos (colchões, toppers, capas Gémeos e 18 bases sommier) 37 678,32 € + IVA. Possível sobreposição a confirmar com PA-001 e ENC-032.
+- 2026-11-20 17:48 (verificação diária): TEC 118 aprovada (-280 467,14 €) com o estudo dos autos (acerto total -47 775,36 €; linha de complemento +232 691,78 € a confirmar pelo Pedro); TEC 121 aprovada (831,47 €); TEC 122 recebida (26 805,44 €, aguarda). Notas na PA-010 (pladur SCR via Oreco) e PA-022. TEC aprovadas: 3 640 364,03 € (102); pendentes 341 445,61 € (4).
