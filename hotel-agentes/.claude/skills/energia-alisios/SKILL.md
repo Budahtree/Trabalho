@@ -12,13 +12,15 @@ description: Atualiza o painel "Energia · Hotel Alísios" com o relatório mais
    - ocupação do mês;
    - consumo, custo (€ sem IVA) e quartos ocupados por mês (relatório de métricas, trimestral);
    - produção solar.
-3. Atualiza os ficheiros de dados do painel (mensal, fontes, solar, acoes) e confirma que a soma das fontes dá o total do relatório.
-4. Assinala como desvio:
+3. Lê no SharePoint a versão mais recente do orçamento "Classe 6" do Alísios (contas 6241 eletricidade, 6242 gás, 6243 água): real do ano e orçamento por mês. Não existe orçamento de 2026 por especialidade; o painel compara com o orçamento de 2027.
+4. Atualiza os ficheiros de dados do painel (mensal, fontes, solar, custos, acoes) e confirma que a soma das fontes dá o total do relatório.
+5. Assinala como desvio:
    - uma fonte que sobe mais de 10% face ao homólogo quando a ocupação sobe menos do que isso;
    - consumo acima do esperado em meses de ocupação baixa (menos de 50%);
-   - produção solar a descer com radiação igual.
-5. Atualiza a lista "O que está por fazer" com o que os emails mostrarem (proposta aceite, manutenção feita, etc.).
-6. Se houver desvios, prepara um **rascunho** de email para a manutenção, no tom de `modelos/tom-de-voz.md`. **Nunca envia.**
+   - produção solar a descer com radiação igual;
+   - custo do mês acima do orçamento.
+6. Atualiza a lista "O que está por fazer" com o que os emails mostrarem (proposta aceite, manutenção feita, etc.).
+7. Se houver desvios, prepara um **rascunho** de email para a manutenção, no tom de `modelos/tom-de-voz.md`. **Nunca envia.**
 
 ## Painel
 - Endereço: https://claude.ai/artifact/KicPAETi8cTzh7XqR3wBXW (privado ao gestor).
