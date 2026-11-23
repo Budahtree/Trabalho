@@ -3,8 +3,8 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-23 (Lisboa), a pedido do Pedro
-- Email verificado até: 2026-11-23 10:00
+- Data/hora: 2026-11-23 17:48 (Lisboa), verificação diária automática
+- Email verificado até: 2026-11-23 17:48
 
 ## Estado conhecido
 - TEC registadas até à TEC 122 (folha TEC Extra).
@@ -32,3 +32,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 - 2026-11-20: pré-opening RMS-012 Planeta dos Sonhos (colchões, toppers, capas Gémeos e 18 bases sommier) 37 678,32 € + IVA. Possível sobreposição a confirmar com PA-001 e ENC-032.
 - 2026-11-20 17:48 (verificação diária): TEC 118 aprovada (-280 467,14 €) com o estudo dos autos (acerto total -47 775,36 €; linha de complemento +232 691,78 € a confirmar pelo Pedro); TEC 121 aprovada (831,47 €); TEC 122 recebida (26 805,44 €, aguarda). Notas na PA-010 (pladur SCR via Oreco) e PA-022. TEC aprovadas: 3 640 364,03 € (102); pendentes 341 445,61 € (4).
 - 2026-11-23: fatura Xavier Alumínios FT F024/233 (8 358,37 €, 40% da ENC-065, IVA autoliquidado, vence 23/12) registada como FT-259; ENC-065 com IVA 0%. Sem novas TEC nem aprovações desde 20/11. Planeta dos Sonhos: amostra em consignação, encomenda final em jan/27. CCTV (Strong Charon) em análise: aluguer 36/60 meses + serviços 18 340 €.
+- 2026-11-23 17:48 (verificação diária): ENC-056 Solancis revista para 40 085,00 € s/IVA (encomenda E069665_1 com as peças adicionais aprovadas a 23/11; antes 38 273,75 €; 30% antecipado + 70% antes do carregamento; falta devolver assinada). Oreco enviou o auto contratual n.º 35 revisto (acerto a mais/menos), sem fatura. MOKE: renting, não é CAPEX.
