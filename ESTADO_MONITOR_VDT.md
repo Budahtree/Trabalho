@@ -3,8 +3,8 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-25 10:00 (Lisboa), a pedido do Pedro
-- Email verificado até: 2026-11-25 10:00
+- Data/hora: 2026-11-25 17:48 (Lisboa), verificação diária automática
+- Email verificado até: 2026-11-25 17:48
 
 ## Estado conhecido
 - TEC registadas até à TEC 122 (folha TEC Extra).
@@ -35,3 +35,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 - 2026-11-23 17:48 (verificação diária): ENC-056 Solancis revista para 40 085,00 € s/IVA (encomenda E069665_1 com as peças adicionais aprovadas a 23/11; antes 38 273,75 €; 30% antecipado + 70% antes do carregamento; falta devolver assinada). Oreco enviou o auto contratual n.º 35 revisto (acerto a mais/menos), sem fatura. MOKE: renting, não é CAPEX.
 - 2026-11-24 17:48 (verificação diária): ENC-056 Solancis = 43 789,50 € (E069665_1 40 085,00 € + E070008 peças adicionais 3 704,50 €, aprovadas a 24/11). Fatura de adiantamento FT AFT 26/0023 (30%: 13 136,85 € + IVA 3 021,48 €, vence 25/11) registada como FT-260. Smartfloor: aprovadas as condições de pagamento (sem alteração de valor).
 - 2026-11-25 10:00: sem alterações ao mapa. Ibericafrio alerta para falta de alimentação trifásica do forno Rational e das bancadas refrigeradas da pastelaria (sem valor). Rolear ON: encomenda de cabo PS-PT em discussão (sem valor).
+- 2026-11-25 17:48 (verificação diária): sem alterações ao mapa. Casa Ferreira: auto de novembro aprovado pelo Pedro (sem fatura). CCTV Strong Charon: em discussão interna (proposta do Pedro: mão de obra 18 340 € + aluguer 60 meses a 1 059 €/mês; Sérgio com reservas), sem adjudicação.
