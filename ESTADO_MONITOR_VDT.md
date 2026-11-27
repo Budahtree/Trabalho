@@ -3,8 +3,8 @@
 Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório, branch `claude/bold-newton-d84qs8`).
 
 ## Última verificação
-- Data/hora: 2026-11-26 17:48 (Lisboa), verificação diária automática
-- Email verificado até: 2026-11-26 17:48
+- Data/hora: 2026-11-27 17:48 (Lisboa), verificação diária automática
+- Email verificado até: 2026-11-27 17:48
 
 ## Estado conhecido
 - TEC registadas até à TEC 122 (folha TEC Extra).
@@ -37,3 +37,4 @@ Ficheiro principal: `Mapa_Controlo_Investimento_VDT_V04.xlsx` (este repositório
 - 2026-11-25 10:00: sem alterações ao mapa. Ibericafrio alerta para falta de alimentação trifásica do forno Rational e das bancadas refrigeradas da pastelaria (sem valor). Rolear ON: encomenda de cabo PS-PT em discussão (sem valor).
 - 2026-11-25 17:48 (verificação diária): sem alterações ao mapa. Casa Ferreira: auto de novembro aprovado pelo Pedro (sem fatura). CCTV Strong Charon: em discussão interna (proposta do Pedro: mão de obra 18 340 € + aluguer 60 meses a 1 059 €/mês; Sérgio com reservas), sem adjudicação.
 - 2026-11-26 17:48 (verificação diária): sem alterações ao mapa. Autos de novembro da Oreco (contratual + TNC a negativo) aprovados pelo Pedro a 26/11: execução 86%, fatura prevista ~124 mil € (registar quando a fatura chegar). Ibericafrio enviou propostas de louças, talheres e vidros para a abertura (pré-opening, não adjudicadas). TEC 122: novo pedido de decomposição (26/11).
+- 2026-11-27 17:48 (verificação diária): fatura Oreco 2026A1/257 (novembro) registada em 2 linhas: FT-261 ENC-005 auto contratual n.º 35 +1 505 842,85 € e FT-262 ENC-006 auto TNC n.º 38 -1 381 170,57 €; líquido 124 672,28 €, retenção 6 233,62 €, a pagar 118 438,66 €, vence 12/12. Broadway Malyan avisa que fatura a 30/11 a entrega do conceito dos quartos (16 416 €). Mensagem Intemporal enviou orçamento de carpintaria e mobiliário das zonas comuns (OR-26-113, não adjudicado).
